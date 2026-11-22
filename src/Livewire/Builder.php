@@ -2,12 +2,16 @@
 
 namespace Elearnac\PageBuilder\Livewire;
 
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Masmerise\Toaster\Toaster;
 use Elearnac\PageBuilder\ComponentRegistry;
 use Elearnac\PageBuilder\Models\BuilderPage;
+use Elearnac\PageBuilder\Services\FontRegistry;
 
 #[Layout('page-builder::layouts.builder')]
 class Builder extends Component
@@ -18,12 +22,19 @@ class Builder extends Component
     public bool $status = true;
     public array $document = [];
     public array $pageSettings = [
+        'font' => 'site',
         'background' => '#f8fafc',
+        'background_dark' => '#020617',
         'text' => '#0f172a',
+        'text_dark' => '#e2e8f0',
+        'accent' => '#18b7a5',
+        'radius' => 12,
+        'container_width' => 1200,
         'header' => true,
         'footer' => true,
     ];
     public ?int $selected = null;
+    public string $fileKey = 'images';
     public string $device = 'desktop';
     public int $previewVersion = 0;
     public array $history = [];
@@ -148,6 +159,11 @@ class Builder extends Component
         $this->persistDraft();
     }
 
+    public function setFileKey(string $key): void
+    {
+        $this->fileKey = preg_replace('/[^a-zA-Z0-9_]/', '', $key) ?: 'images';
+    }
+
     #[On('pb-file')]
     public function addFile(array $data): void
     {
@@ -155,22 +171,25 @@ class Builder extends Component
         if ($id === null || $this->selected === null || ! isset($this->document[$this->selected])) {
             return;
         }
-        $images = (array) data_get($this->document, "{$this->selected}.settings.images", []);
+        $images = (array) data_get($this->document, "{$this->selected}.settings.{$this->fileKey}", []);
         if (! in_array($id, $images, true)) {
             $images[] = $id;
         }
-        data_set($this->document, "{$this->selected}.settings.images", array_values($images));
+        data_set($this->document, "{$this->selected}.settings.{$this->fileKey}", array_values($images));
         $this->persistDraft();
     }
 
-    public function removeImage(int $index): void
+    public function removeImage(int $index, ?string $key = null): void
     {
         if ($this->selected === null) {
             return;
         }
-        $images = (array) data_get($this->document, "{$this->selected}.settings.images", []);
+        if ($key !== null) {
+            $this->setFileKey($key);
+        }
+        $images = (array) data_get($this->document, "{$this->selected}.settings.{$this->fileKey}", []);
         unset($images[$index]);
-        data_set($this->document, "{$this->selected}.settings.images", array_values($images));
+        data_set($this->document, "{$this->selected}.settings.{$this->fileKey}", array_values($images));
         $this->persistDraft();
     }
 
@@ -234,12 +253,26 @@ class Builder extends Component
 
         $this->document[] = $block;
         $this->selected = count($this->document) - 1;
+        $this->fileKey = $this->firstFileField($this->selected);
         $this->persistDraft();
     }
 
     public function selectBlock(int $index): void
     {
         $this->selected = $index;
+        $this->fileKey = $this->firstFileField($index);
+    }
+
+    private function firstFileField(int $index): string
+    {
+        $type = (string) data_get($this->document, "{$index}.type");
+        foreach ((array) data_get($this->registry()->get($type), 'fields', []) as $key => $field) {
+            if (($field['type'] ?? '') === 'files') {
+                return $key;
+            }
+        }
+
+        return 'images';
     }
 
     public function removeBlock(int $index): void
@@ -411,18 +444,38 @@ class Builder extends Component
         $this->persistDraft();
     }
 
+    private function pageSettingRules(): array
+    {
+        $color = ['nullable', 'string', 'max:40', 'regex:/^(#[0-9a-fA-F]{3,8}|rgba?\([0-9.,\s%]+\))$/'];
+
+        return [
+            'pageSettings.font' => ['nullable', Rule::in(array_keys(app(FontRegistry::class)->options()))],
+            'pageSettings.background' => $color,
+            'pageSettings.background_dark' => $color,
+            'pageSettings.text' => $color,
+            'pageSettings.text_dark' => $color,
+            'pageSettings.accent' => $color,
+            'pageSettings.radius' => 'nullable|numeric|min:0|max:120',
+            'pageSettings.container_width' => 'nullable|numeric|min:320|max:2560',
+            'pageSettings.header' => 'nullable|boolean',
+            'pageSettings.footer' => 'nullable|boolean',
+        ];
+    }
+
     public function save(): void
     {
-        $this->validate([
+        $this->validate(array_merge([
             'title' => 'required|string|max:255',
             'slug' => 'required|string|max:255',
             'document' => 'array',
-            'pageSettings.background' => 'nullable|string|max:20',
-            'pageSettings.text' => 'nullable|string|max:20',
-        ]);
+        ], $this->pageSettingRules()));
 
         $modelClass = config('page-builder.model', BuilderPage::class);
         $documentColumn = config('page-builder.document_column', 'document');
+        $settingsColumn = config('page-builder.settings_column', 'settings');
+        $page = $this->pageId
+            ? $modelClass::findOrFail($this->pageId)
+            : new $modelClass();
 
         $attributes = [
             'title' => $this->title,
@@ -431,13 +484,9 @@ class Builder extends Component
             $documentColumn => $this->document,
         ];
 
-        if (is_subclass_of($modelClass, BuilderPage::class)) {
-            $attributes['settings'] = $this->pageSettings;
+        if (Schema::hasColumn($page->getTable(), $settingsColumn)) {
+            $attributes[$settingsColumn] = $this->pageSettings;
         }
-
-        $page = $this->pageId
-            ? $modelClass::findOrFail($this->pageId)
-            : new $modelClass();
 
         foreach (config('page-builder.model_defaults', []) as $key => $value) {
             if (! $page->exists || ! $page->{$key}) {
@@ -466,6 +515,7 @@ class Builder extends Component
             'components' => $this->registry()->all(),
             'groups' => $this->registry()->groups(),
             'categories' => $this->registry()->categories(),
+            'fonts' => app(\Elearnac\PageBuilder\Services\FontRegistry::class)->options(),
         ]);
     }
 }

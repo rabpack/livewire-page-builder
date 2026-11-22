@@ -76,6 +76,16 @@
                                     @case('switch')
                                         <input type="checkbox" wire:model.live="document.{{ $selected }}.settings.{{ $key }}" class="rounded border-slate-300 text-brand-500">
                                         @break
+                                    @case('font')
+                                        <select wire:model.live="document.{{ $selected }}.settings.{{ $key }}" class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900">
+                                            @foreach ($fonts as $fontKey => $fontLabel)<option value="{{ $fontKey }}">{{ $fontLabel }}</option>@endforeach
+                                        </select>
+                                        @break
+                                    @case('number')
+                                        <input type="number" wire:model.live="document.{{ $selected }}.settings.{{ $key }}"
+                                               min="{{ $field['min'] ?? 0 }}" max="{{ $field['max'] ?? 10000 }}"
+                                               class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900">
+                                        @break
                                     @case('select')
                                     @case('model')
                                         <select wire:model.live="document.{{ $selected }}.settings.{{ $key }}" class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900">
@@ -103,12 +113,12 @@
                                         @break
                                     @case('files')
                                         @php($images = (array) data_get($document, $selected.'.settings.'.$key, []))
-                                        <div class="space-y-2">
+                                        <div class="space-y-2" @click.capture="$wire.setFileKey('{{ $key }}')">
                                             @foreach ($images as $imageIndex => $imageId)
                                                 <div class="flex items-center gap-2 rounded-lg border border-slate-200 p-1 dark:border-slate-700">
                                                     <img src="{{ app(\Elearnac\PageBuilder\Services\MediaResolver::class)->url($imageId) }}" class="h-10 w-14 rounded object-cover" alt="">
                                                     <span class="flex-1 truncate text-[10px] text-slate-500">#{{ $imageId }}</span>
-                                                    <button type="button" wire:click="removeImage({{ $imageIndex }})" class="rounded bg-rose-600 px-2 py-1 text-[10px] text-white">×</button>
+                                                    <button type="button" wire:click="removeImage({{ $imageIndex }}, '{{ $key }}')" class="rounded bg-rose-600 px-2 py-1 text-[10px] text-white">×</button>
                                                 </div>
                                             @endforeach
                                             @if (config('page-builder.file_manager.component'))
@@ -218,8 +228,14 @@
                 <section class="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
                     <h3 class="mb-2 text-xs font-extrabold text-slate-700 dark:text-slate-200">طرح صفحه</h3>
                     <div class="space-y-2">
+                        <div><label class="mb-1 block text-[11px] font-bold">فونت صفحه</label><select wire:model.live="pageSettings.font" class="h-9 w-full rounded border border-slate-200 px-2 text-xs dark:border-slate-700 dark:bg-slate-900">@foreach ($fonts as $fontKey => $fontLabel)<option value="{{ $fontKey }}">{{ $fontLabel }}</option>@endforeach</select></div>
                         <div><label class="mb-1 block text-[11px] font-bold">پسزمینه صفحه</label><input type="color" wire:model.live="pageSettings.background" class="h-9 w-full rounded border border-slate-200"></div>
+                        <div><label class="mb-1 block text-[11px] font-bold">پسزمینه در حالت تاریک</label><input type="color" wire:model.live="pageSettings.background_dark" class="h-9 w-full rounded border border-slate-200"></div>
                         <div><label class="mb-1 block text-[11px] font-bold">رنگ متن</label><input type="color" wire:model.live="pageSettings.text" class="h-9 w-full rounded border border-slate-200"></div>
+                        <div><label class="mb-1 block text-[11px] font-bold">رنگ متن در حالت تاریک</label><input type="color" wire:model.live="pageSettings.text_dark" class="h-9 w-full rounded border border-slate-200"></div>
+                        <div><label class="mb-1 block text-[11px] font-bold">رنگ اصلی</label><input type="color" wire:model.live="pageSettings.accent" class="h-9 w-full rounded border border-slate-200"></div>
+                        <div><label class="mb-1 block text-[11px] font-bold">عرض محتوا (پیکسل)</label><input type="number" min="320" max="2200" wire:model.live="pageSettings.container_width" class="h-9 w-full rounded border border-slate-200 px-2 text-xs dark:border-slate-700 dark:bg-slate-900"></div>
+                        <div><label class="mb-1 block text-[11px] font-bold">گردی پیشفرض (پیکسل)</label><input type="number" min="0" max="48" wire:model.live="pageSettings.radius" class="h-9 w-full rounded border border-slate-200 px-2 text-xs dark:border-slate-700 dark:bg-slate-900"></div>
                         <label class="flex items-center justify-between text-xs font-bold"><span>نمایش هدر سایت</span><input type="checkbox" wire:model.live="pageSettings.header"></label>
                         <label class="flex items-center justify-between text-xs font-bold"><span>نمایش فوتر سایت</span><input type="checkbox" wire:model.live="pageSettings.footer"></label>
                     </div>
@@ -256,9 +272,9 @@
         </div>
 
         <div class="min-h-0 flex-1 overflow-y-auto p-4">
-            <div class="mx-auto w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-all duration-300 dark:border-slate-800"
+            <div class="pb-page mx-auto w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-all duration-300 dark:border-slate-800"
                  :class="{'max-w-[390px]': device==='mobile','max-w-[768px]': device==='tablet','max-w-[1024px]': device==='desktop','max-w-none': device==='wide'}"
-                 style="background: {{ $pageSettings['background'] ?? '#f8fafc' }}; color: {{ $pageSettings['text'] ?? '#0f172a' }};">
+                 style="{{ app(\Elearnac\PageBuilder\Services\StyleCompiler::class)->pageVariables($pageSettings) }};">
 
                 @if ($pageSettings['header'] ?? true) @include(config('page-builder.preview_partials.header', 'general::layouts.partials.header')) @endif
 
@@ -280,12 +296,12 @@
                                 <button type="button" wire:click.stop="duplicateBlock({{ $index }})" class="rounded bg-white px-2 py-1 text-[10px] shadow">کپی</button>
                                 <button type="button" wire:click.stop="removeBlock({{ $index }})" class="rounded bg-rose-600 px-2 py-1 text-[10px] text-white shadow">حذف</button>
                             </div>
-                            @livewire('page-builder.component.'.$block['type'], [
+                            @livewire('page-builder.component.'.$block['type'], app(\Elearnac\PageBuilder\ComponentRegistry::class)->mountProps($block['type'], [
                                 'settings' => $block['settings'],
                                 'children' => $block['children'] ?? [],
                                 'editable' => true,
                                 'path' => (string) $index,
-                            ], key('pb-'.$index.'-'.$block['type']))
+                            ]), key('pb-'.$index.'-'.$block['type']))
                         </div>
                         <div class="my-1 h-2 rounded border border-dashed border-brand-300 bg-brand-50/40"
                              data-dropzone data-path=""

@@ -6,12 +6,12 @@
              ondrop="event.preventDefault(); window.dispatchEvent(new CustomEvent('pb-drop',{detail:{type:event.dataTransfer.getData('text/plain'),index:{{ $index }},parent:'{{ $path }}.children'}}))"></div>
     @endif
     <div class="{{ $editable ? 'rounded-lg border border-transparent p-1 hover:border-brand-200' : '' }}">
-        @livewire('page-builder.component.'.$child['type'], [
+        @livewire('page-builder.component.'.$child['type'], app(\Elearnac\PageBuilder\ComponentRegistry::class)->mountProps($child['type'], [
             'settings' => $child['settings'],
             'children' => $child['children'] ?? [],
             'editable' => $editable,
             'path' => $path.'.children.'.$index,
-        ], key($path.'-child-'.$index.'-'.$child['type']))
+        ]), key($path.'-child-'.$index.'-'.$child['type']))
     </div>
 @endforeach
 @if ($editable)

@@ -13,6 +13,9 @@ class PageBuilderServiceProvider extends ServiceProvider
         config()->set('page-builder', array_replace_recursive($defaults, config('page-builder', [])));
         $this->app->singleton(ComponentRegistry::class);
         $this->app->singleton(\Elearnac\PageBuilder\Services\RichText::class);
+        $this->app->singleton(\Elearnac\PageBuilder\Services\FontRegistry::class);
+        $this->app->singleton(\Elearnac\PageBuilder\Services\StyleCompiler::class);
+        $this->app->singleton(\Elearnac\PageBuilder\Services\DynamicData::class);
     }
 
     public function boot(): void

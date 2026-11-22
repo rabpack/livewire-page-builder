@@ -1,4 +1,6 @@
-<div style="background: {{ $settings['background'] ?? '#f8fafc' }}; color: {{ $settings['text'] ?? '#0f172a' }};" class="min-h-screen">
+@include('page-builder::partials.fonts')
+@include('page-builder::partials.style')
+<div class="pb-page min-h-screen" style="{{ app(\Elearnac\PageBuilder\Services\StyleCompiler::class)->pageVariables($settings) }}">
     @if ($settings['header'] ?? true)
         <header class="border-b border-slate-200 bg-white/80 px-6 py-4 dark:border-slate-800 dark:bg-slate-900/80">
             <div class="{{ app(\Elearnac\PageBuilder\ComponentRegistry::class)->classes('container') }} font-extrabold">{{ $page->title }}</div>
@@ -6,12 +8,12 @@
     @endif
     <main class="{{ app(\Elearnac\PageBuilder\ComponentRegistry::class)->classes('container') }} py-8">
         @foreach ($blocks as $block)
-            @livewire('page-builder.component.'.$block['type'], [
+            @livewire('page-builder.component.'.$block['type'], $registry->mountProps($block['type'], [
                 'settings' => $block['settings'],
                 'children' => $block['children'] ?? [],
                 'editable' => false,
                 'path' => (string) $loop->index,
-            ], key('render-'.$loop->index.'-'.$block['type']))
+            ]), key('render-'.$loop->index.'-'.$block['type']))
         @endforeach
     </main>
     @if ($settings['footer'] ?? true)
