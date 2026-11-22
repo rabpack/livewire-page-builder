@@ -1,0 +1,21 @@
+{
+    "name": "elearnac/page-builder",
+    "description": "Registry-driven Livewire page builder for Laravel with Tailwind by default and swappable CSS frameworks.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0",
+        "livewire/livewire": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Elearnac\\PageBuilder\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": ["Elearnac\\PageBuilder\\PageBuilderServiceProvider"]
+        }
+    }
+}
