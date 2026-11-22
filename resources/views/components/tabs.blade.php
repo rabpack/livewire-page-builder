@@ -7,6 +7,6 @@
         @endforelse
     </div>
     @foreach ((array)$this->setting('items',[]) as $index => $item)
-        <div x-show="active==={{ $index }}" class="p-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{{ $item['body'] ?? '' }}</div>
+        <div x-show="active==={{ $index }}" class="p-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{!! app(\Elearnac\PageBuilder\Services\RichText::class)->clean($item['body'] ?? '') !!}</div>
     @endforeach
 </div>

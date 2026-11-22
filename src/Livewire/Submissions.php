@@ -9,6 +9,15 @@ class Submissions extends Component
 {
     public string $formId = '';
 
+    public function mount(): void
+    {
+        $permission = config('page-builder.submissions.permission');
+
+        if ($permission) {
+            abort_unless(auth()->user()?->can($permission), 403);
+        }
+    }
+
     public function render()
     {
         $submissions = FormSubmission::query()
@@ -16,6 +25,9 @@ class Submissions extends Component
             ->latest()
             ->paginate(20);
 
-        return view('page-builder::components.submissions', compact('submissions'));
+        return view('page-builder::components.submissions', [
+            'submissions' => $submissions,
+            'forms' => FormSubmission::query()->distinct()->orderBy('form_id')->pluck('form_id')->all(),
+        ]);
     }
 }

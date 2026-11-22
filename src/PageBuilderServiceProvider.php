@@ -12,6 +12,7 @@ class PageBuilderServiceProvider extends ServiceProvider
         $defaults = require __DIR__.'/../config/page-builder.php';
         config()->set('page-builder', array_replace_recursive($defaults, config('page-builder', [])));
         $this->app->singleton(ComponentRegistry::class);
+        $this->app->singleton(\Elearnac\PageBuilder\Services\RichText::class);
     }
 
     public function boot(): void

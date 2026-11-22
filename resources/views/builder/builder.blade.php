@@ -4,7 +4,7 @@
      @pb-drop.window="$wire.call('dropBlock', $event.detail.type, $event.detail.index, $event.detail.parent); panelTab='settings'">
 
     {{-- Right sidebar --}}
-    <aside class="flex h-full w-[336px] shrink-0 flex-col border-e border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
+    <aside class="flex h-full w-[336px] min-w-[336px] max-w-[336px] shrink-0 grow-0 flex-col border-e border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
 
         {{-- Tabs --}}
         <div class="flex items-center gap-1 border-b border-slate-200 p-2 dark:border-slate-800">
@@ -88,6 +88,19 @@
                                     @case('textarea')
                                         <textarea rows="3" wire:model.live.debounce.300ms="document.{{ $selected }}.settings.{{ $key }}" class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900"></textarea>
                                         @break
+                                    @case('editor')
+                                        @if (config('page-builder.editor.component'))
+                                            <x-dynamic-component :component="config('page-builder.editor.component')"
+                                                                 id="pb-editor-{{ $selected }}-{{ $key }}"
+                                                                 name="document.{{ $selected }}.settings.{{ $key }}"
+                                                                 :defaultValue="data_get($document, $selected.'.settings.'.$key, '')"
+                                                                 :isFileUpload="false"
+                                                                 :menuBar="false"
+                                                                 :toolbar="config('page-builder.editor.toolbar')" />
+                                        @else
+                                            <textarea rows="5" wire:model.live.debounce.300ms="document.{{ $selected }}.settings.{{ $key }}" class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900"></textarea>
+                                        @endif
+                                        @break
                                     @case('files')
                                         @php($images = (array) data_get($document, $selected.'.settings.'.$key, []))
                                         <div class="space-y-2">
@@ -122,6 +135,14 @@
                                                             </select>
                                                         @elseif ($subfieldType === 'textarea')
                                                             <textarea rows="2" wire:model.live.debounce.300ms="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.{{ $subfield }}" placeholder="{{ $subfield }}" class="mb-1 w-full rounded border border-slate-200 px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900"></textarea>
+                                                        @elseif ($subfieldType === 'editor' && config('page-builder.editor.component'))
+                                                            <x-dynamic-component :component="config('page-builder.editor.component')"
+                                                                                 id="pb-editor-{{ $selected }}-{{ $key }}-{{ $fieldIndex }}-{{ $subfield }}"
+                                                                                 name="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.{{ $subfield }}"
+                                                                                 :defaultValue="data_get($document, $selected.'.settings.'.$key.'.'.$fieldIndex.'.'.$subfield, '')"
+                                                                                 :isFileUpload="false"
+                                                                                 :menuBar="false"
+                                                                                 :toolbar="config('page-builder.editor.toolbar')" />
                                                         @else
                                                             <input type="text" wire:model.live.debounce.300ms="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.{{ $subfield }}" placeholder="{{ $subfield }}" class="mb-1 w-full rounded border border-slate-200 px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900">
                                                         @endif
@@ -160,11 +181,51 @@
 
         {{-- Page settings --}}
         <div class="min-h-0 flex-1 overflow-y-auto p-4" x-show="panelTab==='page'">
-            <div class="mb-4 space-y-3">
-                <div><label class="mb-1 block text-[11px] font-bold">پسزمینه صفحه</label><input type="color" wire:model.live="pageSettings.background" class="h-9 w-full rounded border border-slate-200"></div>
-                <div><label class="mb-1 block text-[11px] font-bold">رنگ متن</label><input type="color" wire:model.live="pageSettings.text" class="h-9 w-full rounded border border-slate-200"></div>
-                <label class="flex items-center justify-between text-xs font-bold"><span>نمایش هدر سایت</span><input type="checkbox" wire:model.live="pageSettings.header"></label>
-                <label class="flex items-center justify-between text-xs font-bold"><span>نمایش فوتر سایت</span><input type="checkbox" wire:model.live="pageSettings.footer"></label>
+            <div class="mb-4 space-y-4">
+                <section class="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                    <h3 class="mb-2 text-xs font-extrabold text-slate-700 dark:text-slate-200">الگوهای آماده</h3>
+                    <div class="space-y-2">
+                        @foreach (config('page-builder.templates', []) as $key => $template)
+                            <button type="button" wire:click="applyTemplate('{{ $key }}')" class="w-full rounded-lg border border-slate-200 p-2 text-start transition-colors hover:border-brand-400 hover:bg-brand-50 dark:border-slate-700 dark:hover:bg-brand-500/10">
+                                <span class="block text-[11px] font-extrabold text-slate-700 dark:text-slate-200">{{ $template['label'] }}</span>
+                                <span class="mt-0.5 block text-[10px] text-slate-400">{{ $template['description'] }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                    @error('template')<p class="mt-2 text-[10px] text-rose-600">{{ $message }}</p>@enderror
+                </section>
+
+                <section class="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                    <h3 class="mb-2 text-xs font-extrabold text-slate-700 dark:text-slate-200">کپی و چسباندن المان</h3>
+                    <div class="flex gap-2">
+                        <button type="button" wire:click="copyBlock" class="flex-1 rounded-lg border border-slate-200 py-2 text-[11px] font-bold dark:border-slate-700">کپی المان انتخابشده</button>
+                        <button type="button" wire:click="pasteBlock" class="flex-1 rounded-lg border border-slate-200 py-2 text-[11px] font-bold dark:border-slate-700">چسباندن</button>
+                    </div>
+                    @error('clipboard')<p class="mt-2 text-[10px] text-rose-600">{{ $message }}</p>@enderror
+                </section>
+
+                <section class="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                    <h3 class="mb-2 text-xs font-extrabold text-slate-700 dark:text-slate-200">انتقال صفحه</h3>
+                    <div class="flex gap-2">
+                        <button type="button" wire:click="prepareExport" class="flex-1 rounded-lg border border-slate-200 py-2 text-[11px] font-bold dark:border-slate-700">صادر کردن JSON</button>
+                        <button type="button" wire:click="importDocument" class="flex-1 rounded-lg border border-slate-200 py-2 text-[11px] font-bold dark:border-slate-700">وارد کردن JSON</button>
+                    </div>
+                    <textarea wire:model="exportText" rows="4" readonly placeholder="پس از صادر کردن، محتوای صفحه اینجا نمایش داده میشود." class="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-[10px] dark:border-slate-700 dark:bg-slate-950" dir="ltr"></textarea>
+                    <textarea wire:model="importText" rows="4" placeholder="محتوای JSON صفحه را اینجا بچسبانید." class="mt-2 w-full rounded-lg border border-slate-200 p-2 text-[10px] dark:border-slate-700 dark:bg-slate-900" dir="ltr"></textarea>
+                    @error('importText')<p class="mt-2 text-[10px] text-rose-600">{{ $message }}</p>@enderror
+                </section>
+
+                <section class="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                    <h3 class="mb-2 text-xs font-extrabold text-slate-700 dark:text-slate-200">طرح صفحه</h3>
+                    <div class="space-y-2">
+                        <div><label class="mb-1 block text-[11px] font-bold">پسزمینه صفحه</label><input type="color" wire:model.live="pageSettings.background" class="h-9 w-full rounded border border-slate-200"></div>
+                        <div><label class="mb-1 block text-[11px] font-bold">رنگ متن</label><input type="color" wire:model.live="pageSettings.text" class="h-9 w-full rounded border border-slate-200"></div>
+                        <label class="flex items-center justify-between text-xs font-bold"><span>نمایش هدر سایت</span><input type="checkbox" wire:model.live="pageSettings.header"></label>
+                        <label class="flex items-center justify-between text-xs font-bold"><span>نمایش فوتر سایت</span><input type="checkbox" wire:model.live="pageSettings.footer"></label>
+                    </div>
+                </section>
+
+                <a href="{{ route('page-builder.submissions') }}" class="block rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-center text-[11px] font-bold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">مشاهده پیامهای فرمها</a>
                 <button type="button" wire:click="clearDraft" class="w-full rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600">پاک کردن پیشنویس</button>
             </div>
         </div>

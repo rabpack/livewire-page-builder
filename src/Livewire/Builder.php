@@ -28,6 +28,9 @@ class Builder extends Component
     public int $previewVersion = 0;
     public array $history = [];
     public int $historyIndex = -1;
+    public array $clipboard = [];
+    public string $importText = '';
+    public string $exportText = '';
 
     public function mount($slug = null): void
     {
@@ -102,6 +105,22 @@ class Builder extends Component
         $this->previewVersion++;
     }
 
+    private function makeBlock(string $type, array $overrides = []): ?array
+    {
+        $definition = $this->registry()->get($type);
+
+        if (! $definition) {
+            return null;
+        }
+
+        return [
+            'type' => $type,
+            'settings' => array_replace_recursive($this->registry()->defaults($type), $overrides),
+            'children' => [],
+            'devices' => ['desktop' => true, 'tablet' => true, 'mobile' => true, 'wide' => true],
+        ];
+    }
+
     public function dropBlock(string $type, int $index, string $parent = ''): void
     {
         $this->pushHistory();
@@ -110,17 +129,10 @@ class Builder extends Component
             return;
         }
 
-        $definition = $this->registry()->get($type);
-        if (! $definition) {
+        $block = $this->makeBlock($type);
+        if (! $block) {
             return;
         }
-
-        $block = [
-            'type' => $type,
-            'settings' => $this->registry()->defaults($type),
-            'children' => [],
-            'devices' => ['desktop' => true, 'tablet' => true, 'mobile' => true, 'wide' => true],
-        ];
 
         $targetPath = $parent !== '' ? $parent : null;
         $children = $targetPath ? (array) data_get($this->document, $targetPath, []) : $this->document;
@@ -215,17 +227,12 @@ class Builder extends Component
     public function addBlock(string $type): void
     {
         $this->pushHistory();
-        $definition = $this->registry()->get($type);
-        if (! $definition) {
+        $block = $this->makeBlock($type);
+        if (! $block) {
             return;
         }
 
-        $this->document[] = [
-            'type' => $type,
-            'settings' => $this->registry()->defaults($type),
-            'children' => [],
-            'devices' => ['desktop' => true, 'tablet' => true, 'mobile' => true, 'wide' => true],
-        ];
+        $this->document[] = $block;
         $this->selected = count($this->document) - 1;
         $this->persistDraft();
     }
@@ -290,6 +297,93 @@ class Builder extends Component
             $this->document = $children;
         }
         $this->selected = $to;
+        $this->persistDraft();
+    }
+
+    public function applyTemplate(string $key): void
+    {
+        $template = config("page-builder.templates.{$key}");
+
+        if (! is_array($template)) {
+            $this->addError('template', 'الگوی درخواستی یافت نشد.');
+            return;
+        }
+
+        $this->pushHistory();
+        $this->document = [];
+
+        foreach ((array) data_get($template, 'blocks', []) as $definition) {
+            $block = $this->makeBlock((string) data_get($definition, 'type', ''), (array) data_get($definition, 'settings', []));
+            if ($block) {
+                $this->document[] = $block;
+            }
+        }
+
+        $this->selected = count($this->document) ? 0 : null;
+        $this->resetErrorBag();
+        $this->persistDraft();
+    }
+
+    public function copyBlock(): void
+    {
+        if ($this->selected === null || ! isset($this->document[$this->selected])) {
+            return;
+        }
+
+        $this->clipboard = $this->document[$this->selected];
+    }
+
+    public function pasteBlock(): void
+    {
+        if (! $this->clipboard || ! isset($this->clipboard['type'])) {
+            $this->addError('clipboard', 'ابتدا یک المان را کپی کنید.');
+            return;
+        }
+
+        $this->pushHistory();
+        $copy = json_decode(json_encode($this->clipboard), true);
+        $position = ($this->selected ?? -1) + 1;
+        array_splice($this->document, $position, 0, [$copy]);
+        $this->selected = $position;
+        $this->resetErrorBag();
+        $this->persistDraft();
+    }
+
+    public function prepareExport(): void
+    {
+        $this->exportText = (string) json_encode([
+            'settings' => $this->pageSettings,
+            'document' => $this->document,
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    public function importDocument(): void
+    {
+        $payload = json_decode($this->importText, true);
+
+        if (! is_array($payload) || ! is_array(data_get($payload, 'document')) || count(data_get($payload, 'document')) > 100) {
+            $this->addError('importText', 'ساختار فایل معتبر نیست.');
+            return;
+        }
+
+        $blocks = [];
+        foreach (data_get($payload, 'document') as $definition) {
+            if (! is_array($definition) || ! $this->registry()->get((string) data_get($definition, 'type', ''))) {
+                $this->addError('importText', 'یکی از المانهای فایل شناخته شده نیست.');
+                return;
+            }
+            $block = $this->makeBlock((string) $definition['type'], (array) data_get($definition, 'settings', []));
+            if ($block) {
+                $blocks[] = $block;
+            }
+        }
+
+        $this->pushHistory();
+        $this->document = $blocks;
+        $this->pageSettings = array_merge($this->pageSettings, (array) data_get($payload, 'settings', []));
+        $this->selected = count($blocks) ? 0 : null;
+        $this->importText = '';
+        $this->resetErrorBag();
         $this->persistDraft();
     }
 

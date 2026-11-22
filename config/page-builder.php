@@ -109,7 +109,7 @@ return [
             'icon' => 'far fa-paragraph',
             'class' => \Elearnac\PageBuilder\Livewire\Components\Text::class,
             'fields' => [
-                'body' => ['type' => 'textarea', 'label' => 'متن', 'default' => 'متن خود را وارد کنید.'],
+                'body' => ['type' => 'editor', 'label' => 'متن', 'default' => 'متن خود را وارد کنید.'],
                 'size' => ['type' => 'select', 'label' => 'اندازه', 'options' => ['sm' => 'کوچک', 'md' => 'متوسط', 'lg' => 'بزرگ'], 'default' => 'md'],
                 'color' => ['type' => 'color', 'label' => 'رنگ متن', 'default' => '#334155'],
                 'align' => ['type' => 'select', 'label' => 'همترازی', 'options' => ['right' => 'راست', 'center' => 'وسط', 'left' => 'چپ'], 'default' => 'right'],
@@ -293,7 +293,7 @@ return [
             'group' => 'پیشرفته', 'label' => 'آکاردئون', 'icon' => 'far fa-list',
             'class' => \Elearnac\PageBuilder\Livewire\Components\AccordionBlock::class,
             'fields' => [
-                'items' => ['type' => 'repeater', 'label' => 'موارد', 'subfields' => ['title' => 'text', 'body' => 'textarea'], 'default' => [
+                'items' => ['type' => 'repeater', 'label' => 'موارد', 'subfields' => ['title' => 'text', 'body' => 'editor'], 'default' => [
                     ['title' => 'سوال اول؟', 'body' => 'پاسخ سوال اول'],
                     ['title' => 'سوال دوم؟', 'body' => 'پاسخ سوال دوم'],
                 ]],
@@ -305,7 +305,7 @@ return [
             'group' => 'پیشرفته', 'label' => 'زبانهها', 'icon' => 'far fa-folder-open',
             'class' => \Elearnac\PageBuilder\Livewire\Components\TabsBlock::class,
             'fields' => [
-                'items' => ['type' => 'repeater', 'label' => 'زبانهها', 'subfields' => ['title' => 'text', 'body' => 'textarea'], 'default' => [
+                'items' => ['type' => 'repeater', 'label' => 'زبانهها', 'subfields' => ['title' => 'text', 'body' => 'editor'], 'default' => [
                     ['title' => 'تب اول', 'body' => 'محتوای تب اول'],
                     ['title' => 'تب دوم', 'body' => 'محتوای تب دوم'],
                 ]],
@@ -350,4 +350,52 @@ return [
             ],
         ],
     ],
+    'editor' => [
+        'component' => null,
+        'sanitizer' => null,
+        'toolbar' => ['bold', 'italic', '|', 'link', 'bulletedList', 'numberedList', '|', 'sourceEditing'],
+    ],
+
+    'submissions' => [
+        'layout' => 'general::layouts.layout',
+        'permission' => null,
+        'middleware' => ['web', 'auth'],
+    ],
+
+    'templates' => [
+        'landing' => [
+            'label' => 'صفحه فرود',
+            'description' => 'عنوان، متن، دکمه، مزایا و فرم تماس',
+            'blocks' => [
+                ['type' => 'heading', 'settings' => ['title' => 'با ما بهترینها را بیاموزید', 'level' => 'h1', 'align' => 'center', 'size' => 40]],
+                ['type' => 'text', 'settings' => ['body' => 'دورههای حرفهای ما را با پشتیبانی کامل و گواهینامه معتبر شروع کنید.', 'align' => 'center', 'size' => 'lg']],
+                ['type' => 'button', 'settings' => ['label' => 'مشاهده دورهها', 'link' => '/course', 'align' => 'center', 'style' => 'solid']],
+                ['type' => 'pricing', 'settings' => ['plan' => 'پلن ویژه', 'price' => '990,000', 'highlight' => true]],
+                ['type' => 'form', 'settings' => ['title' => 'در تماس باشید']],
+            ],
+        ],
+        'course' => [
+            'label' => 'معرفی دوره',
+            'description' => 'اسلاید دوره، آمار، زبانهها و نظرات',
+            'blocks' => [
+                ['type' => 'heading', 'settings' => ['title' => 'دوره آکادمی ما', 'align' => 'center', 'size' => 36]],
+                ['type' => 'course-slider', 'settings' => ['limit' => 6, 'autoplay' => true]],
+                ['type' => 'counter', 'settings' => ['number' => 1200, 'label' => 'دانشجوی راضی']],
+                ['type' => 'tabs'],
+                ['type' => 'reviews', 'settings' => ['layout' => 'grid', 'limit' => 6]],
+            ],
+        ],
+        'faq' => [
+            'label' => 'سوالات متداول',
+            'description' => 'هشدار، آکاردئون و فرم پیگیری',
+            'blocks' => [
+                ['type' => 'heading', 'settings' => ['title' => 'سوالات متداول', 'align' => 'center']],
+                ['type' => 'alert', 'settings' => ['type' => 'info', 'title' => 'پیش از شروع', 'body' => 'پاسخ سوالات خود را در ادامه پیدا کنید.']],
+                ['type' => 'accordion'],
+                ['type' => 'spacer', 'settings' => ['height' => 24]],
+                ['type' => 'form', 'settings' => ['title' => 'سوال دیگری دارید؟']],
+            ],
+        ],
+    ],
+
 ];
