@@ -4,7 +4,6 @@ namespace Elearnac\PageBuilder\Livewire;
 
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\On;
 use Livewire\Component;
 use Masmerise\Toaster\Toaster;
 use Elearnac\PageBuilder\ComponentRegistry;
@@ -42,6 +41,13 @@ class Builder extends Component
             $this->pageSettings = array_merge($this->pageSettings, (array) data_get($page, 'settings', []));
         }
 
+        if (! $slug && ($draft = session('page-builder.draft'))) {
+            $this->title = data_get($draft, 'title', '');
+            $this->slug = data_get($draft, 'slug', '');
+            $this->document = (array) data_get($draft, 'document', []);
+            $this->pageSettings = array_merge($this->pageSettings, (array) data_get($draft, 'settings', []));
+        }
+
         $this->selected = count($this->document) ? 0 : null;
         $this->persistDraft();
     }
@@ -62,14 +68,13 @@ class Builder extends Component
         $this->previewVersion++;
     }
 
-    #[On('pb-drop')]
-    public function handleDrop(string $type, int $index, string $parent = ''): void
-    {
-        $this->dropBlock($type, $index, $parent);
-    }
-
     public function dropBlock(string $type, int $index, string $parent = ''): void
     {
+        if (str_starts_with($type, 'move:')) {
+            $this->moveBlockTo((int) substr($type, 5), $index, $parent);
+            return;
+        }
+
         $definition = $this->registry()->get($type);
         if (! $definition) {
             return;
@@ -92,7 +97,55 @@ class Builder extends Component
             $this->document = $children;
         }
 
-        $this->selected = count($this->document) - 1;
+        $this->selected = $parent !== '' ? count($this->document) - 1 : max(0, min($index, count($this->document) - 1));
+        $this->persistDraft();
+    }
+
+    #[On('pb-file')]
+    public function addFile(array $data): void
+    {
+        $id = $data['payload']['id'] ?? null;
+        if ($id === null || $this->selected === null || ! isset($this->document[$this->selected])) {
+            return;
+        }
+        $images = (array) data_get($this->document, "{$this->selected}.settings.images", []);
+        if (! in_array($id, $images, true)) {
+            $images[] = $id;
+        }
+        data_set($this->document, "{$this->selected}.settings.images", array_values($images));
+        $this->persistDraft();
+    }
+
+    public function removeImage(int $index): void
+    {
+        if ($this->selected === null) {
+            return;
+        }
+        $images = (array) data_get($this->document, "{$this->selected}.settings.images", []);
+        unset($images[$index]);
+        data_set($this->document, "{$this->selected}.settings.images", array_values($images));
+        $this->persistDraft();
+    }
+
+    public function addFormField(): void
+    {
+        if ($this->selected === null) {
+            return;
+        }
+        $fields = (array) data_get($this->document, "{$this->selected}.settings.fields", []);
+        $fields[] = ['name' => 'field_'.count($fields), 'label' => 'فیلد جدید', 'type' => 'text', 'required' => false];
+        data_set($this->document, "{$this->selected}.settings.fields", $fields);
+        $this->persistDraft();
+    }
+
+    public function removeFormField(int $index): void
+    {
+        if ($this->selected === null) {
+            return;
+        }
+        $fields = (array) data_get($this->document, "{$this->selected}.settings.fields", []);
+        unset($fields[$index]);
+        data_set($this->document, "{$this->selected}.settings.fields", array_values($fields));
         $this->persistDraft();
     }
 
@@ -148,6 +201,57 @@ class Builder extends Component
 
         [$this->document[$index], $this->document[$swap]] = [$this->document[$swap], $this->document[$index]];
         $this->selected = $swap;
+        $this->persistDraft();
+    }
+
+    public function duplicateBlock(int $index): void
+    {
+        if (! isset($this->document[$index])) {
+            return;
+        }
+        $copy = $this->document[$index];
+        array_splice($this->document, $index + 1, 0, [$copy]);
+        $this->selected = $index + 1;
+        $this->persistDraft();
+    }
+
+    public function moveBlockTo(int $from, int $to, string $parent = ''): void
+    {
+        if ($from === $to) {
+            return;
+        }
+        $targetPath = $parent !== '' ? $parent : null;
+        $children = $targetPath ? (array) data_get($this->document, $targetPath, []) : $this->document;
+        if (! isset($children[$from])) {
+            return;
+        }
+        $block = $children[$from];
+        unset($children[$from]);
+        $children = array_values($children);
+        array_splice($children, max(0, min($to, count($children))), 0, [$block]);
+        if ($targetPath) {
+            data_set($this->document, $targetPath, $children);
+        } else {
+            $this->document = $children;
+        }
+        $this->selected = $to;
+        $this->persistDraft();
+    }
+
+    public function setPageSetting(string $key, mixed $value): void
+    {
+        $this->pageSettings[$key] = $value;
+        $this->persistDraft();
+    }
+
+    public function clearDraft(): void
+    {
+        session()->forget('page-builder.draft');
+        $this->title = '';
+        $this->slug = '';
+        $this->document = [];
+        $this->selected = null;
+        $this->pageId = null;
         $this->persistDraft();
     }
 
@@ -211,6 +315,7 @@ class Builder extends Component
     {
         return view('page-builder::builder.builder', [
             'components' => $this->registry()->all(),
+            'groups' => $this->registry()->groups(),
             'categories' => $this->registry()->categories(),
         ]);
     }

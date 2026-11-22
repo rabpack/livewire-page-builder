@@ -1,10 +1,6 @@
 <?php
 
 return [
-    /*
-     * CSS framework used by the builder and rendered pages. Tailwind is the
-     * default; set to 'bootstrap' (or your own key) to swap the wrapper classes.
-     */
     'framework' => env('PAGE_BUILDER_FRAMEWORK', 'tailwind'),
 
     'front_layout' => 'general::layouts.layout',
@@ -26,14 +22,15 @@ return [
         ],
     ],
 
-    /* Page model and the column that stores the builder document. */
     'model' => \Elearnac\PageBuilder\Models\BuilderPage::class,
     'document_column' => 'document',
 
-    /*
-     * Categories for the courses/products slider. Point these at your own
-     * category table and item table in any project.
-     */
+    'file_model' => \Modules\File\App\Models\File::class,
+    'file_manager' => [
+        'component' => 'file::file-manager.file-manager',
+        'name' => 'pb-file',
+    ],
+
     'catalog' => [
         'category_model' => \Modules\Category\App\Models\Category::class,
         'category_label' => 'title',
@@ -43,15 +40,23 @@ return [
         'category_key' => 'category_id',
     ],
 
-    /* Reviews source for the reviews component. */
+    'gallery' => [
+        'item_model' => \Modules\Course\App\Models\Course::class,
+        'item_label' => 'title',
+        'item_image' => 'poster_id',
+        'category_model' => \Modules\Category\App\Models\Category::class,
+        'category_label' => 'title',
+        'category_key' => 'category_id',
+    ],
+
     'reviews' => [
         'model' => \Modules\Comment\App\Models\Comment::class,
         'label' => 'title',
     ],
 
-    /* Every component is registered here. Add your own class + fields to extend. */
     'components' => [
         'container' => [
+            'group' => 'ساختار',
             'label' => 'کانتینر',
             'icon' => 'far fa-square',
             'class' => \Elearnac\PageBuilder\Livewire\Components\ContainerBlock::class,
@@ -59,52 +64,82 @@ return [
                 'background' => ['type' => 'color', 'label' => 'پسزمینه', 'default' => '#ffffff'],
                 'padding' => ['type' => 'number', 'label' => 'پدینگ (پیکسل)', 'default' => 24],
                 'radius' => ['type' => 'number', 'label' => 'گردی گوشهها', 'default' => 14],
+                'border_color' => ['type' => 'color', 'label' => 'رنگ کادر', 'default' => '#e2e8f0'],
+                'border_width' => ['type' => 'number', 'label' => 'ضخامت کادر', 'default' => 1],
+                'shadow' => ['type' => 'switch', 'label' => 'سایه', 'default' => false],
                 'classes' => ['type' => 'text', 'label' => 'کلاسهای اضافی', 'default' => ''],
             ],
         ],
         'grid' => [
+            'group' => 'ساختار',
             'label' => 'شبکه',
             'icon' => 'far fa-grip',
             'class' => \Elearnac\PageBuilder\Livewire\Components\GridBlock::class,
             'fields' => [
-                'columns' => ['type' => 'number', 'label' => 'تعداد ستونها', 'default' => 2],
+                'columns' => ['type' => 'number', 'label' => 'تعداد ستونها (دسکتاپ)', 'default' => 3],
+                'columns_tablet' => ['type' => 'number', 'label' => 'ستون تبلت', 'default' => 2],
+                'columns_mobile' => ['type' => 'number', 'label' => 'ستون موبایل', 'default' => 1],
                 'gap' => ['type' => 'number', 'label' => 'فاصله (پیکسل)', 'default' => 16],
                 'background' => ['type' => 'color', 'label' => 'پسزمینه', 'default' => '#ffffff'],
+                'padding' => ['type' => 'number', 'label' => 'پدینگ', 'default' => 12],
+                'radius' => ['type' => 'number', 'label' => 'گردی گوشهها', 'default' => 12],
                 'classes' => ['type' => 'text', 'label' => 'کلاسهای اضافی', 'default' => ''],
             ],
         ],
         'heading' => [
+            'group' => 'عمومی',
             'label' => 'عنوان',
             'icon' => 'far fa-heading',
             'class' => \Elearnac\PageBuilder\Livewire\Components\Heading::class,
             'fields' => [
                 'title' => ['type' => 'text', 'label' => 'متن عنوان', 'default' => 'عنوان جدید'],
+                'level' => ['type' => 'select', 'label' => 'سطح عنوان', 'options' => ['h1' => 'H1', 'h2' => 'H2', 'h3' => 'H3', 'h4' => 'H4', 'h5' => 'H5', 'h6' => 'H6'], 'default' => 'h2'],
                 'align' => ['type' => 'select', 'label' => 'همترازی', 'options' => ['right' => 'راست', 'center' => 'وسط', 'left' => 'چپ'], 'default' => 'right'],
                 'color' => ['type' => 'color', 'label' => 'رنگ', 'default' => '#0f3d6e'],
+                'size' => ['type' => 'number', 'label' => 'اندازه (پیکسل)', 'default' => 30],
+                'weight' => ['type' => 'select', 'label' => 'ضخامت', 'options' => ['400' => 'عادی', '600' => 'نیمه ضخیم', '800' => 'ضخیم'], 'default' => '800'],
+                'margin_top' => ['type' => 'number', 'label' => 'فاصله بالا', 'default' => 8],
+                'margin_bottom' => ['type' => 'number', 'label' => 'فاصله پایین', 'default' => 12],
+                'classes' => ['type' => 'text', 'label' => 'کلاسهای اضافی', 'default' => ''],
             ],
         ],
         'text' => [
+            'group' => 'عمومی',
             'label' => 'متن',
             'icon' => 'far fa-paragraph',
             'class' => \Elearnac\PageBuilder\Livewire\Components\Text::class,
             'fields' => [
                 'body' => ['type' => 'textarea', 'label' => 'متن', 'default' => 'متن خود را وارد کنید.'],
                 'size' => ['type' => 'select', 'label' => 'اندازه', 'options' => ['sm' => 'کوچک', 'md' => 'متوسط', 'lg' => 'بزرگ'], 'default' => 'md'],
+                'color' => ['type' => 'color', 'label' => 'رنگ متن', 'default' => '#334155'],
+                'align' => ['type' => 'select', 'label' => 'همترازی', 'options' => ['right' => 'راست', 'center' => 'وسط', 'left' => 'چپ'], 'default' => 'right'],
+                'line_height' => ['type' => 'number', 'label' => 'فاصله خطوط', 'default' => 28],
+                'classes' => ['type' => 'text', 'label' => 'کلاسهای اضافی', 'default' => ''],
             ],
         ],
         'image-slider' => [
+            'group' => 'رسانه',
             'label' => 'اسلاید تصاویر',
             'icon' => 'far fa-images',
             'class' => \Elearnac\PageBuilder\Livewire\Components\ImageSlider::class,
             'fields' => [
-                'images' => ['type' => 'textarea', 'label' => 'آدرس تصاویر (هر خط یک آدرس)', 'default' => ''],
-                'style' => ['type' => 'select', 'label' => 'سبک', 'options' => ['default' => 'ساده', 'cards' => 'کارتها', 'fade' => 'محو'], 'default' => 'default'],
+                'images' => ['type' => 'files', 'label' => 'تصاویر (از مدارک سایت)', 'default' => []],
+                'effect' => ['type' => 'select', 'label' => 'جلوه', 'options' => ['slide' => 'کشویی', 'fade' => 'محو', 'cards' => 'کارتها', 'coverflow' => 'نمای سهبعدی'], 'default' => 'slide'],
                 'height' => ['type' => 'number', 'label' => 'ارتفاع (پیکسل)', 'default' => 360],
+                'radius' => ['type' => 'number', 'label' => 'گردی گوشهها', 'default' => 16],
                 'autoplay' => ['type' => 'switch', 'label' => 'پخش خودکار', 'default' => true],
-                'breakpoints' => ['type' => 'text', 'label' => 'تعداد اسلایدها موبایل/تبلت/دسکتاپ', 'default' => '1,2,3'],
+                'loop' => ['type' => 'switch', 'label' => 'چرخش مکرر', 'default' => true],
+                'arrows' => ['type' => 'switch', 'label' => ' فلشها', 'default' => true],
+                'pagination' => ['type' => 'switch', 'label' => 'نقاط', 'default' => true],
+                'speed' => ['type' => 'number', 'label' => 'سرعت (میلیثانیه)', 'default' => 700],
+                'image_fit' => ['type' => 'select', 'label' => 'نحوه نمایش تصویر', 'options' => ['cover' => 'پر کردن', 'contain' => 'کامل'], 'default' => 'cover'],
+                'slides_mobile' => ['type' => 'number', 'label' => 'اسلاید موبایل', 'default' => 1],
+                'slides_tablet' => ['type' => 'number', 'label' => 'اسلاید تبلت', 'default' => 2],
+                'slides_desktop' => ['type' => 'number', 'label' => 'اسلاید دسکتاپ', 'default' => 3],
             ],
         ],
         'course-slider' => [
+            'group' => 'داده ها',
             'label' => 'اسلاید دوره/محصول',
             'icon' => 'far fa-graduation-cap',
             'class' => \Elearnac\PageBuilder\Livewire\Components\CourseSlider::class,
@@ -113,12 +148,18 @@ return [
                 'limit' => ['type' => 'number', 'label' => 'تعداد', 'default' => 8],
                 'show_image' => ['type' => 'switch', 'label' => 'نمایش تصویر', 'default' => true],
                 'show_title' => ['type' => 'switch', 'label' => 'نمایش عنوان', 'default' => true],
+                'show_price' => ['type' => 'switch', 'label' => 'نمایش_price', 'default' => true],
+                'show_rating' => ['type' => 'switch', 'label' => 'نمایش امتیاز', 'default' => true],
                 'background' => ['type' => 'color', 'label' => 'پسزمینه کارت', 'default' => '#ffffff'],
                 'radius' => ['type' => 'number', 'label' => 'گردی گوشهها', 'default' => 16],
+                'arrows' => ['type' => 'switch', 'label' => 'فلشها', 'default' => true],
+                'pagination' => ['type' => 'switch', 'label' => 'نقاط', 'default' => true],
+                'autoplay' => ['type' => 'switch', 'label' => 'پخش خودکار', 'default' => false],
                 'card_classes' => ['type' => 'text', 'label' => 'کلاسهای اضافی کارت', 'default' => ''],
             ],
         ],
         'reviews' => [
+            'group' => 'داده ها',
             'label' => 'نظرات',
             'icon' => 'far fa-star',
             'class' => \Elearnac\PageBuilder\Livewire\Components\Reviews::class,
@@ -126,43 +167,71 @@ return [
                 'layout' => ['type' => 'select', 'label' => 'حالت نمایش', 'options' => ['slider' => 'اسلایدر', 'stacked' => 'رویهم', 'grid' => 'شبکه'], 'default' => 'grid'],
                 'limit' => ['type' => 'number', 'label' => 'تعداد', 'default' => 6],
                 'columns' => ['type' => 'number', 'label' => 'تعداد ستون', 'default' => 3],
+                'show_avatar' => ['type' => 'switch', 'label' => 'نمایش آواتار', 'default' => true],
+                'show_rating' => ['type' => 'switch', 'label' => 'نمایش امتیاز', 'default' => true],
+                'background' => ['type' => 'color', 'label' => 'پسزمینه کارت', 'default' => '#ffffff'],
+                'radius' => ['type' => 'number', 'label' => 'گردی گوشهها', 'default' => 14],
             ],
         ],
         'form' => [
+            'group' => 'فرم',
             'label' => 'فرم',
             'icon' => 'far fa-square-check',
             'class' => \Elearnac\PageBuilder\Livewire\Components\FormBuilder::class,
             'fields' => [
                 'title' => ['type' => 'text', 'label' => 'عنوان فرم', 'default' => 'فرم تماس'],
-                'fields' => ['type' => 'textarea', 'label' => 'فیلدها (name|label|type در هر خط)', 'default' => "name|نام|text\nemail|ایمیل|email\nmessage|پیام|textarea"],
+                'description' => ['type' => 'textarea', 'label' => 'توضیحات', 'default' => ''],
+                'fields' => ['type' => 'repeater', 'label' => 'فیلدهای فرم', 'default' => [
+                    ['name' => 'name', 'label' => 'نام', 'type' => 'text', 'required' => true],
+                    ['name' => 'email', 'label' => 'ایمیل', 'type' => 'email', 'required' => true],
+                    ['name' => 'message', 'label' => 'پیام', 'type' => 'textarea', 'required' => false],
+                ]],
                 'button' => ['type' => 'text', 'label' => 'متن دکمه', 'default' => 'ارسال'],
+                'success' => ['type' => 'text', 'label' => 'پیام موفقیت', 'default' => 'پیام شما با موفقیت ثبت شد.'],
+                'email_to' => ['type' => 'text', 'label' => 'ایمیل دریافتکننده (اختیاری)', 'default' => ''],
             ],
         ],
         'login-gate' => [
+            'group' => 'پیشرفته',
             'label' => 'دروازه ورود',
             'icon' => 'far fa-lock',
             'class' => \Elearnac\PageBuilder\Livewire\Components\LoginGate::class,
             'fields' => [
                 'message' => ['type' => 'text', 'label' => 'پیام', 'default' => 'برای مشاهده این بخش وارد شوید.'],
                 'blur' => ['type' => 'number', 'label' => 'میزان تاری (پیکسل)', 'default' => 10],
+                'button' => ['type' => 'text', 'label' => 'متن دکمه', 'default' => 'ورود به سایت'],
+                'background' => ['type' => 'color', 'label' => 'پسزمینه پوشش', 'default' => '#0f172acc'],
+                'text_color' => ['type' => 'color', 'label' => 'رنگ متن', 'default' => '#ffffff'],
             ],
         ],
         'breadcrumb' => [
+            'group' => 'پیشرفته',
             'label' => 'مسیر صفحه',
             'icon' => 'far fa-bread-slice',
             'class' => \Elearnac\PageBuilder\Livewire\Components\Breadcrumb::class,
             'fields' => [
                 'home' => ['type' => 'text', 'label' => 'عنوان خانه', 'default' => 'خانه'],
+                'separator' => ['type' => 'text', 'label' => 'جداکننده', 'default' => '/'],
+                'color' => ['type' => 'color', 'label' => 'رنگ', 'default' => '#64748b'],
             ],
         ],
         'gallery' => [
+            'group' => 'رسانه',
             'label' => 'گالری تصاویر',
             'icon' => 'far fa-border-all',
             'class' => \Elearnac\PageBuilder\Livewire\Components\Gallery::class,
             'fields' => [
-                'images' => ['type' => 'textarea', 'label' => 'آدرس تصاویر (هر خط یک آدرس)', 'default' => ''],
-                'columns' => ['type' => 'number', 'label' => 'ستونها', 'default' => 3],
+                'source' => ['type' => 'select', 'label' => 'منبع', 'options' => ['product' => 'محصولات/دورهها', 'manual' => 'انتخاب دستی'], 'default' => 'product'],
+                'category_id' => ['type' => 'model', 'label' => 'دسته بندی', 'default' => ''],
+                'limit' => ['type' => 'number', 'label' => 'تعداد', 'default' => 8],
+                'order' => ['type' => 'select', 'label' => 'ترتیب', 'options' => ['latest' => 'جدیدترین', 'oldest' => 'قدیمیترین', 'title' => 'عنوان'], 'default' => 'latest'],
+                'images' => ['type' => 'files', 'label' => 'تصاویر دستی (از مدارک سایت)', 'default' => []],
+                'columns' => ['type' => 'number', 'label' => 'ستونها', 'default' => 4],
+                'gap' => ['type' => 'number', 'label' => 'فاصله', 'default' => 12],
                 'radius' => ['type' => 'number', 'label' => 'گردی گوشهها', 'default' => 14],
+                'image_fit' => ['type' => 'select', 'label' => 'نحوه نمایش', 'options' => ['cover' => 'پر کردن', 'contain' => 'کامل'], 'default' => 'cover'],
+                'lightbox' => ['type' => 'switch', 'label' => 'نمایش بزرگ با کلیک', 'default' => true],
+                'show_title' => ['type' => 'switch', 'label' => 'نمایش عنوان', 'default' => true],
             ],
         ],
     ],

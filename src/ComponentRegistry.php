@@ -37,6 +37,16 @@ final class ComponentRegistry
         return config("page-builder.framework_classes.{$framework}.{$group}", '');
     }
 
+    public function groups(): array
+    {
+        $groups = [];
+        foreach ($this->all() as $type => $component) {
+            $group = $component['group'] ?? 'عمومی';
+            $groups[$group][$type] = $component;
+        }
+        return $groups;
+    }
+
     public function categories(): array
     {
         $model = config('page-builder.catalog.category_model');

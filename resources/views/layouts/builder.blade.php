@@ -10,12 +10,18 @@
         @vite(['resources/css/app.css','resources/js/app.js'])
     @endif
     @livewireStyles
+    <script>
+        (function () {
+            const stored = localStorage.getItem('theme');
+            document.documentElement.classList.toggle('dark', stored ? stored === 'dark' : false);
+        })();
+    </script>
     <style>
-        body { margin:0; font-family: system-ui, sans-serif; background:#f1f5f9; }
+        body { margin:0; font-family: system-ui, sans-serif; }
         [x-cloak] { display:none !important; }
     </style>
 </head>
-<body x-data="{ darkMode: false, themeSwitcher(){ const t=localStorage.getItem('theme'); this.darkMode = t ? t==='dark' : false; } }" x-init="themeSwitcher()">
+<body x-data="{ darkMode: document.documentElement.classList.contains('dark'), toggleTheme(){ this.darkMode = ! this.darkMode; localStorage.setItem('theme', this.darkMode ? 'dark' : 'light'); } }" x-init="$watch('darkMode', v => document.documentElement.classList.toggle('dark', v))" :class="darkMode ? 'dark bg-slate-950' : 'bg-slate-50'">
     {{ $slot }}
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     @livewireScripts
