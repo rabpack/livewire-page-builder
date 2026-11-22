@@ -26,6 +26,8 @@ class Builder extends Component
     public ?int $selected = null;
     public string $device = 'desktop';
     public int $previewVersion = 0;
+    public array $history = [];
+    public int $historyIndex = -1;
 
     public function mount($slug = null): void
     {
@@ -57,6 +59,38 @@ class Builder extends Component
         $this->persistDraft();
     }
 
+    private function pushHistory(): void
+    {
+        $this->history = array_slice($this->history, 0, $this->historyIndex + 1);
+        $this->history[] = $this->document;
+        if (count($this->history) > 30) {
+            array_shift($this->history);
+        }
+        $this->historyIndex = count($this->history) - 1;
+    }
+
+    public function undo(): void
+    {
+        if ($this->historyIndex <= 0) {
+            return;
+        }
+        $this->historyIndex--;
+        $this->document = $this->history[$this->historyIndex];
+        $this->selected = count($this->document) ? 0 : null;
+        $this->persistDraft();
+    }
+
+    public function redo(): void
+    {
+        if ($this->historyIndex >= count($this->history) - 1) {
+            return;
+        }
+        $this->historyIndex++;
+        $this->document = $this->history[$this->historyIndex];
+        $this->selected = count($this->document) ? 0 : null;
+        $this->persistDraft();
+    }
+
     private function persistDraft(): void
     {
         session()->put('page-builder.draft', [
@@ -70,6 +104,7 @@ class Builder extends Component
 
     public function dropBlock(string $type, int $index, string $parent = ''): void
     {
+        $this->pushHistory();
         if (str_starts_with($type, 'move:')) {
             $this->moveBlockTo((int) substr($type, 5), $index, $parent);
             return;
@@ -127,26 +162,41 @@ class Builder extends Component
         $this->persistDraft();
     }
 
-    public function addFormField(): void
+    public function addRepeaterItem(string $key): void
     {
         if ($this->selected === null) {
             return;
         }
-        $fields = (array) data_get($this->document, "{$this->selected}.settings.fields", []);
-        $fields[] = ['name' => 'field_'.count($fields), 'label' => 'فیلد جدید', 'type' => 'text', 'required' => false];
-        data_set($this->document, "{$this->selected}.settings.fields", $fields);
+        $field = data_get($this->registry()->all(), "{$this->document[$this->selected]['type']}.fields.{$key}", []);
+        $item = [];
+        foreach ((array) data_get($field, 'subfields', []) as $subfield => $type) {
+            $item[$subfield] = $type === 'number' ? 0 : '';
+        }
+        $items = (array) data_get($this->document, "{$this->selected}.settings.{$key}", []);
+        $items[] = $item;
+        data_set($this->document, "{$this->selected}.settings.{$key}", $items);
         $this->persistDraft();
+    }
+
+    public function removeRepeaterItem(string $key, int $index): void
+    {
+        if ($this->selected === null) {
+            return;
+        }
+        $items = (array) data_get($this->document, "{$this->selected}.settings.{$key}", []);
+        unset($items[$index]);
+        data_set($this->document, "{$this->selected}.settings.{$key}", array_values($items));
+        $this->persistDraft();
+    }
+
+    public function addFormField(): void
+    {
+        $this->addRepeaterItem('fields');
     }
 
     public function removeFormField(int $index): void
     {
-        if ($this->selected === null) {
-            return;
-        }
-        $fields = (array) data_get($this->document, "{$this->selected}.settings.fields", []);
-        unset($fields[$index]);
-        data_set($this->document, "{$this->selected}.settings.fields", array_values($fields));
-        $this->persistDraft();
+        $this->removeRepeaterItem('fields', $index);
     }
 
     public function registry(): ComponentRegistry
@@ -164,6 +214,7 @@ class Builder extends Component
 
     public function addBlock(string $type): void
     {
+        $this->pushHistory();
         $definition = $this->registry()->get($type);
         if (! $definition) {
             return;
@@ -186,6 +237,7 @@ class Builder extends Component
 
     public function removeBlock(int $index): void
     {
+        $this->pushHistory();
         unset($this->document[$index]);
         $this->document = array_values($this->document);
         $this->selected = count($this->document) ? max(0, $this->selected - 1) : null;
@@ -194,6 +246,7 @@ class Builder extends Component
 
     public function moveBlock(int $index, int $direction): void
     {
+        $this->pushHistory();
         $swap = $index + $direction;
         if (! isset($this->document[$index], $this->document[$swap])) {
             return;
@@ -206,6 +259,7 @@ class Builder extends Component
 
     public function duplicateBlock(int $index): void
     {
+        $this->pushHistory();
         if (! isset($this->document[$index])) {
             return;
         }
@@ -217,6 +271,7 @@ class Builder extends Component
 
     public function moveBlockTo(int $from, int $to, string $parent = ''): void
     {
+        $this->pushHistory();
         if ($from === $to) {
             return;
         }

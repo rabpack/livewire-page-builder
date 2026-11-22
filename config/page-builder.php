@@ -181,7 +181,7 @@ return [
             'fields' => [
                 'title' => ['type' => 'text', 'label' => 'عنوان فرم', 'default' => 'فرم تماس'],
                 'description' => ['type' => 'textarea', 'label' => 'توضیحات', 'default' => ''],
-                'fields' => ['type' => 'repeater', 'label' => 'فیلدهای فرم', 'default' => [
+                'fields' => ['type' => 'repeater', 'label' => 'فیلدهای فرم', 'subfields' => ['name' => 'text', 'label' => 'text', 'type' => 'select', 'required' => 'switch'], 'default' => [
                     ['name' => 'name', 'label' => 'نام', 'type' => 'text', 'required' => true],
                     ['name' => 'email', 'label' => 'ایمیل', 'type' => 'email', 'required' => true],
                     ['name' => 'message', 'label' => 'پیام', 'type' => 'textarea', 'required' => false],
@@ -232,6 +232,121 @@ return [
                 'image_fit' => ['type' => 'select', 'label' => 'نحوه نمایش', 'options' => ['cover' => 'پر کردن', 'contain' => 'کامل'], 'default' => 'cover'],
                 'lightbox' => ['type' => 'switch', 'label' => 'نمایش بزرگ با کلیک', 'default' => true],
                 'show_title' => ['type' => 'switch', 'label' => 'نمایش عنوان', 'default' => true],
+            ],
+        ],
+        'button' => [
+            'group' => 'عمومی', 'label' => 'دکمه', 'icon' => 'far fa-mouse-pointer',
+            'class' => \Elearnac\PageBuilder\Livewire\Components\ButtonBlock::class,
+            'fields' => [
+                'label' => ['type' => 'text', 'label' => 'متن دکمه', 'default' => 'ادامه مطلب'],
+                'link' => ['type' => 'text', 'label' => 'لینک', 'default' => '#'],
+                'style' => ['type' => 'select', 'label' => 'سبک', 'options' => ['solid' => 'پر', 'outline' => 'خطی', 'ghost' => 'ساده'], 'default' => 'solid'],
+                'color' => ['type' => 'color', 'label' => 'رنگ', 'default' => '#18b7a5', 'section' => 'style'],
+                'size' => ['type' => 'select', 'label' => 'اندازه', 'options' => ['sm' => 'کوچک', 'md' => 'متوسط', 'lg' => 'بزرگ'], 'default' => 'md', 'section' => 'style'],
+                'radius' => ['type' => 'number', 'label' => 'گردی گوشهها', 'default' => 8, 'section' => 'style'],
+                'align' => ['type' => 'select', 'label' => 'همترازی', 'options' => ['right' => 'راست', 'center' => 'وسط', 'left' => 'چپ'], 'default' => 'right', 'section' => 'style'],
+                'target' => ['type' => 'select', 'label' => 'باز شدن لینک', 'options' => ['_self' => 'همان صفحه', '_blank' => 'صفحه جدید'], 'default' => '_self', 'section' => 'advanced'],
+            ],
+        ],
+        'image' => [
+            'group' => 'رسانه', 'label' => 'تصویر', 'icon' => 'far fa-image',
+            'class' => \Elearnac\PageBuilder\Livewire\Components\ImageBlock::class,
+            'fields' => [
+                'image' => ['type' => 'files', 'label' => 'تصویر (از مدارک سایت)', 'default' => []],
+                'alt' => ['type' => 'text', 'label' => 'متن جایگزین', 'default' => ''],
+                'caption' => ['type' => 'text', 'label' => 'زیرنویس', 'default' => ''],
+                'link' => ['type' => 'text', 'label' => 'لینک', 'default' => ''],
+                'fit' => ['type' => 'select', 'label' => 'نحوه نمایش', 'options' => ['cover' => 'پر کردن', 'contain' => 'کامل'], 'default' => 'cover', 'section' => 'style'],
+                'height' => ['type' => 'number', 'label' => 'ارتفاع', 'default' => 280, 'section' => 'style'],
+                'radius' => ['type' => 'number', 'label' => 'گردی گوشهها', 'default' => 12, 'section' => 'style'],
+                'lightbox' => ['type' => 'switch', 'label' => 'نمایش بزرگ', 'default' => true, 'section' => 'advanced'],
+            ],
+        ],
+        'divider' => [
+            'group' => 'ساختار', 'label' => 'جداکننده', 'icon' => 'far fa-minus',
+            'class' => \Elearnac\PageBuilder\Livewire\Components\DividerBlock::class,
+            'fields' => [
+                'style' => ['type' => 'select', 'label' => 'سبک', 'options' => ['solid' => 'خط', 'dashed' => 'خطچین', 'dotted' => 'نقطهای'], 'default' => 'solid'],
+                'color' => ['type' => 'color', 'label' => 'رنگ', 'default' => '#cbd5e1', 'section' => 'style'],
+                'thickness' => ['type' => 'number', 'label' => 'ضخامت', 'default' => 1, 'section' => 'style'],
+                'width' => ['type' => 'number', 'label' => 'عرض (درصد)', 'default' => 100, 'section' => 'style'],
+                'margin' => ['type' => 'number', 'label' => 'فاصله عمودی', 'default' => 16, 'section' => 'style'],
+            ],
+        ],
+        'spacer' => [
+            'group' => 'ساختار', 'label' => 'فاصله', 'icon' => 'far fa-arrows-alt-v',
+            'class' => \Elearnac\PageBuilder\Livewire\Components\SpacerBlock::class,
+            'fields' => ['height' => ['type' => 'number', 'label' => 'ارتفاع (پیکسل)', 'default' => 40]],
+        ],
+        'alert' => [
+            'group' => 'عمومی', 'label' => 'هشدار', 'icon' => 'far fa-exclamation-triangle',
+            'class' => \Elearnac\PageBuilder\Livewire\Components\AlertBlock::class,
+            'fields' => [
+                'type' => ['type' => 'select', 'label' => 'نوع', 'options' => ['info' => 'اطلاعات', 'success' => 'موفقیت', 'warning' => 'هشدار', 'danger' => 'خطا'], 'default' => 'info'],
+                'title' => ['type' => 'text', 'label' => 'عنوان', 'default' => 'توجه'],
+                'body' => ['type' => 'textarea', 'label' => 'متن', 'default' => 'متن هشدار را وارد کنید.'],
+                'dismissible' => ['type' => 'switch', 'label' => 'قابل بسته شدن', 'default' => true, 'section' => 'advanced'],
+                'radius' => ['type' => 'number', 'label' => 'گردی گوشهها', 'default' => 10, 'section' => 'style'],
+            ],
+        ],
+        'accordion' => [
+            'group' => 'پیشرفته', 'label' => 'آکاردئون', 'icon' => 'far fa-list',
+            'class' => \Elearnac\PageBuilder\Livewire\Components\AccordionBlock::class,
+            'fields' => [
+                'items' => ['type' => 'repeater', 'label' => 'موارد', 'subfields' => ['title' => 'text', 'body' => 'textarea'], 'default' => [
+                    ['title' => 'سوال اول؟', 'body' => 'پاسخ سوال اول'],
+                    ['title' => 'سوال دوم؟', 'body' => 'پاسخ سوال دوم'],
+                ]],
+                'open_first' => ['type' => 'switch', 'label' => 'باز بودن مورد اول', 'default' => true, 'section' => 'advanced'],
+                'radius' => ['type' => 'number', 'label' => 'گردی گوشهها', 'default' => 10, 'section' => 'style'],
+            ],
+        ],
+        'tabs' => [
+            'group' => 'پیشرفته', 'label' => 'زبانهها', 'icon' => 'far fa-folder-open',
+            'class' => \Elearnac\PageBuilder\Livewire\Components\TabsBlock::class,
+            'fields' => [
+                'items' => ['type' => 'repeater', 'label' => 'زبانهها', 'subfields' => ['title' => 'text', 'body' => 'textarea'], 'default' => [
+                    ['title' => 'تب اول', 'body' => 'محتوای تب اول'],
+                    ['title' => 'تب دوم', 'body' => 'محتوای تب دوم'],
+                ]],
+                'radius' => ['type' => 'number', 'label' => 'گردی گوشهها', 'default' => 10, 'section' => 'style'],
+            ],
+        ],
+        'pricing' => [
+            'group' => 'داده ها', 'label' => 'جدول قیمت', 'icon' => 'far fa-tag',
+            'class' => \Elearnac\PageBuilder\Livewire\Components\PricingBlock::class,
+            'fields' => [
+                'plan' => ['type' => 'text', 'label' => 'نام پلن', 'default' => 'پلن حرفهای'],
+                'price' => ['type' => 'text', 'label' => 'قیمت', 'default' => '990,000'],
+                'period' => ['type' => 'text', 'label' => 'دوره', 'default' => 'ماهانه'],
+                'features' => ['type' => 'repeater', 'label' => 'مزایا', 'subfields' => ['title' => 'text'], 'default' => [['title' => 'پشتیبانی کامل'], ['title' => 'دسترسی نامحدود']]],
+                'button' => ['type' => 'text', 'label' => 'متن دکمه', 'default' => 'خرید پلن'],
+                'link' => ['type' => 'text', 'label' => 'لینک دکمه', 'default' => '#'],
+                'highlight' => ['type' => 'switch', 'label' => 'برجسته', 'default' => true, 'section' => 'style'],
+                'color' => ['type' => 'color', 'label' => 'رنگ', 'default' => '#18b7a5', 'section' => 'style'],
+            ],
+        ],
+        'progress' => [
+            'group' => 'پیشرفته', 'label' => 'نوار پیشرفت', 'icon' => 'far fa-chart-bar',
+            'class' => \Elearnac\PageBuilder\Livewire\Components\ProgressBlock::class,
+            'fields' => [
+                'label' => ['type' => 'text', 'label' => 'عنوان', 'default' => 'پیشرفت'],
+                'value' => ['type' => 'number', 'label' => 'درصد', 'default' => 75],
+                'show_percent' => ['type' => 'switch', 'label' => 'نمایش درصد', 'default' => true],
+                'color' => ['type' => 'color', 'label' => 'رنگ', 'default' => '#18b7a5', 'section' => 'style'],
+                'height' => ['type' => 'number', 'label' => 'ارتفاع', 'default' => 10, 'section' => 'style'],
+            ],
+        ],
+        'counter' => [
+            'group' => 'پیشرفته', 'label' => 'شمارشگر', 'icon' => 'far fa-sort-numeric-up',
+            'class' => \Elearnac\PageBuilder\Livewire\Components\CounterBlock::class,
+            'fields' => [
+                'number' => ['type' => 'number', 'label' => 'عدد', 'default' => 1200],
+                'label' => ['type' => 'text', 'label' => 'عنوان', 'default' => 'دانشجو'],
+                'prefix' => ['type' => 'text', 'label' => 'پیشوند', 'default' => ''],
+                'suffix' => ['type' => 'text', 'label' => 'پسوند', 'default' => '+'],
+                'color' => ['type' => 'color', 'label' => 'رنگ', 'default' => '#0f3d6e', 'section' => 'style'],
+                'size' => ['type' => 'number', 'label' => 'اندازه', 'default' => 36, 'section' => 'style'],
             ],
         ],
     ],

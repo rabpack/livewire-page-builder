@@ -112,16 +112,23 @@
                                         <div class="space-y-2">
                                             @foreach ($repeater as $fieldIndex => $formField)
                                                 <div class="rounded-lg border border-slate-200 p-2 dark:border-slate-700">
-                                                    <div class="flex justify-end"><button type="button" wire:click="removeFormField({{ $fieldIndex }})" class="text-[10px] text-rose-600">حذف فیلد</button></div>
-                                                    <input type="text" wire:model.live.debounce.300ms="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.name" placeholder="نام فیلد" class="mb-1 w-full rounded border border-slate-200 px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900">
-                                                    <input type="text" wire:model.live.debounce.300ms="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.label" placeholder="برچسب" class="mb-1 w-full rounded border border-slate-200 px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900">
-                                                    <select wire:model.live="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.type" class="mb-1 w-full rounded border border-slate-200 px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900">
-                                                        @foreach (['text'=>'متن','email'=>'ایمیل','textarea'=>'پیام','number'=>'عدد','tel'=>'تلفن'] as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
-                                                    </select>
-                                                    <label class="flex items-center gap-2 text-[10px] text-slate-500"><input type="checkbox" wire:model.live="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.required"> الزامی</label>
+                                                    <div class="flex justify-end"><button type="button" wire:click="removeRepeaterItem('{{ $key }}', {{ $fieldIndex }})" class="text-[10px] text-rose-600">حذف فیلد</button></div>
+                                                    @foreach ((array) data_get($field, 'subfields', []) as $subfield => $subfieldType)
+                                                        @if ($subfieldType === 'switch')
+                                                            <label class="mb-1 flex items-center gap-2 text-[10px] text-slate-500"><input type="checkbox" wire:model.live="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.{{ $subfield }}"> {{ $subfield }}</label>
+                                                        @elseif ($subfieldType === 'select')
+                                                            <select wire:model.live="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.{{ $subfield }}" class="mb-1 w-full rounded border border-slate-200 px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900">
+                                                                @foreach (($subfield === 'type' ? ['text'=>'متن','email'=>'ایمیل','textarea'=>'پیام','number'=>'عدد','tel'=>'تلفن'] : []) as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                                                            </select>
+                                                        @elseif ($subfieldType === 'textarea')
+                                                            <textarea rows="2" wire:model.live.debounce.300ms="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.{{ $subfield }}" placeholder="{{ $subfield }}" class="mb-1 w-full rounded border border-slate-200 px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900"></textarea>
+                                                        @else
+                                                            <input type="text" wire:model.live.debounce.300ms="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.{{ $subfield }}" placeholder="{{ $subfield }}" class="mb-1 w-full rounded border border-slate-200 px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900">
+                                                        @endif
+                                                    @endforeach
                                                 </div>
                                             @endforeach
-                                            <button type="button" wire:click="addFormField" class="w-full rounded-lg border border-dashed border-brand-400 py-2 text-[11px] font-bold text-brand-600">+ افزودن فیلد</button>
+                                            <button type="button" wire:click="addRepeaterItem('{{ $key }}')" class="w-full rounded-lg border border-dashed border-brand-400 py-2 text-[11px] font-bold text-brand-600">+ افزودن فیلد</button>
                                         </div>
                                         @break
                                     @case('color')
@@ -136,6 +143,16 @@
                         @endforelse
                     </div>
                 @endforeach
+
+                <div x-show="settingsTab==='advanced'" class="mt-3 rounded-lg bg-slate-100 p-3 dark:bg-slate-800">
+                    <p class="mb-2 text-[11px] font-extrabold text-slate-600 dark:text-slate-300">نمایش بر اساس دستگاه</p>
+                    @foreach (['desktop' => 'دسکتاپ', 'tablet' => 'تبلت', 'mobile' => 'موبایل', 'wide' => 'عریض'] as $key => $label)
+                        <button type="button" wire:click="toggleDevice({{ $selected }}, '{{ $key }}')"
+                                class="mb-1 flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[11px] {{ data_get($document, $selected.'.devices.'.$key, true) ? 'bg-brand-500/10 text-brand-600' : 'text-slate-400' }}">
+                            <span>{{ $label }}</span><span>{{ data_get($document, $selected.'.devices.'.$key, true) ? 'فعال' : 'غیرفعال' }}</span>
+                        </button>
+                    @endforeach
+                </div>
             @else
                 <p class="text-xs text-slate-400">یک المان را انتخاب کنید تا تنظیمات آن نمایش داده شود.</p>
             @endif
@@ -170,7 +187,11 @@
                             class="rounded-md px-3 py-1.5 text-xs font-bold transition-colors {{ $device === $key ? 'bg-brand-500 text-white' : 'text-slate-500 hover:bg-white dark:hover:bg-slate-800' }}">{{ $label }}</button>
                 @endforeach
             </div>
-            <button type="button" wire:click="save" class="rounded-lg bg-brand-500 px-4 py-2 text-xs font-bold text-white hover:bg-brand-600">ذخیره صفحه</button>
+            <div class="flex items-center gap-1">
+                <button type="button" wire:click="undo" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300" title="واگرد">↶</button>
+                <button type="button" wire:click="redo" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300" title="بازگرد">↷</button>
+                <button type="button" wire:click="save" class="rounded-lg bg-brand-500 px-4 py-2 text-xs font-bold text-white hover:bg-brand-600">ذخیره صفحه</button>
+            </div>
         </div>
 
         <div class="min-h-0 flex-1 overflow-y-auto p-4">
@@ -188,6 +209,7 @@
 
                     @forelse ($document as $index => $block)
                         <div class="group relative my-2 rounded-xl border-2 p-1 transition-colors {{ $selected === $index ? 'border-brand-500 bg-brand-50/40' : 'border-transparent hover:border-brand-200' }}"
+                             x-show="device==='wide' ? {{ data_get($block, 'devices.wide', true) ? 'true' : 'false' }} : device==='tablet' ? {{ data_get($block, 'devices.tablet', true) ? 'true' : 'false' }} : device==='mobile' ? {{ data_get($block, 'devices.mobile', true) ? 'true' : 'false' }} : {{ data_get($block, 'devices.desktop', true) ? 'true' : 'false' }}"
                              draggable="true"
                              ondragstart="event.dataTransfer.setData('text/plain','move:{{ $index }}')"
                              wire:click="selectBlock({{ $index }})" wire:key="pb-block-{{ $index }}">
