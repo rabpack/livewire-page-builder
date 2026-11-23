@@ -11,11 +11,14 @@ use Livewire\Component;
 use Masmerise\Toaster\Toaster;
 use Elearnac\PageBuilder\ComponentRegistry;
 use Elearnac\PageBuilder\Models\BuilderPage;
+use Elearnac\PageBuilder\Services\FieldPresentation;
 use Elearnac\PageBuilder\Services\FontRegistry;
 
 #[Layout('page-builder::layouts.builder')]
 class Builder extends Component
 {
+    private const DEVICES = ['wide', 'desktop', 'tablet', 'mobile'];
+
     public ?int $pageId = null;
     public string $title = '';
     public string $slug = '';
@@ -164,13 +167,26 @@ class Builder extends Component
         $this->fileKey = preg_replace('/[^a-zA-Z0-9_]/', '', $key) ?: 'images';
     }
 
+    public function setDevice(string $device): void
+    {
+        if (! in_array($device, self::DEVICES, true)) {
+            return;
+        }
+
+        $this->device = $device;
+    }
+
     #[On('pb-file')]
     public function addFile(array $data): void
     {
-        $id = $data['payload']['id'] ?? null;
-        if ($id === null || $this->selected === null || ! isset($this->document[$this->selected])) {
+        $payload = $data['payload'] ?? $data;
+        $id = $payload['id'] ?? null;
+
+        if (! is_numeric($id) || $this->selected === null || ! isset($this->document[$this->selected])) {
             return;
         }
+
+        $id = (int) $id;
         $images = (array) data_get($this->document, "{$this->selected}.settings.{$this->fileKey}", []);
         if (! in_array($id, $images, true)) {
             $images[] = $id;
@@ -515,7 +531,8 @@ class Builder extends Component
             'components' => $this->registry()->all(),
             'groups' => $this->registry()->groups(),
             'categories' => $this->registry()->categories(),
-            'fonts' => app(\Elearnac\PageBuilder\Services\FontRegistry::class)->options(),
+            'fonts' => app(FontRegistry::class)->options(),
+            'fieldPresentation' => app(FieldPresentation::class),
         ]);
     }
 }

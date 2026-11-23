@@ -84,7 +84,7 @@ final class FontRegistry
                 : '';
         }
 
-        return $this->cssIdentifier($value);
+        return '/'.ltrim($this->cssIdentifier($value), '/');
     }
 
     private function cssIdentifier(string $value): string

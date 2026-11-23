@@ -14,6 +14,7 @@ class PageBuilderServiceProvider extends ServiceProvider
         $this->app->singleton(ComponentRegistry::class);
         $this->app->singleton(\Elearnac\PageBuilder\Services\RichText::class);
         $this->app->singleton(\Elearnac\PageBuilder\Services\FontRegistry::class);
+        $this->app->singleton(\Elearnac\PageBuilder\Services\FieldPresentation::class);
         $this->app->singleton(\Elearnac\PageBuilder\Services\StyleCompiler::class);
         $this->app->singleton(\Elearnac\PageBuilder\Services\DynamicData::class);
     }
