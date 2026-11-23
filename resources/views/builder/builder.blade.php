@@ -59,14 +59,14 @@
                 <button type="button" wire:click="back" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:border-brand-400 dark:border-slate-700 dark:text-slate-300">
                     <i class="far fa-arrow-right"></i> بازگشت
                 </button>
-                <input wire:model.live.debounce.300ms="title" wire:change="changeTitle($event.target.value)"
-                       class="w-44 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold dark:border-slate-700 dark:bg-slate-900 dark:text-white sm:w-56"
-                       placeholder="عنوان صفحه">
-                <input wire:model.live.debounce.300ms="slug" dir="ltr"
-                       class="w-36 rounded-lg border border-slate-200 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-white sm:w-44"
-                       placeholder="page-slug" title="آدرس صفحه (برای نمونه: about-us)">
-                @if ($errors->has('title') || $errors->has('slug'))
-                    <span class="text-[11px] font-bold text-rose-600">{{ $errors->first('title') ?: $errors->first('slug') }}</span>
+                <div class="flex min-w-0 flex-col leading-tight">
+                    <span class="text-[10px] text-slate-400">صفحه</span>
+                    <span class="max-w-[220px] truncate text-sm font-extrabold text-slate-700 dark:text-slate-100" title="{{ $pageTitle }}">{{ $pageTitle }}</span>
+                </div>
+                @if ($editUrl)
+                    <a href="{{ $editUrl }}" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-500 hover:border-brand-400 dark:border-slate-700 dark:text-slate-300">
+                        <i class="far fa-edit"></i>عنوان و نامک
+                    </a>
                 @endif
             </div>
 

@@ -101,7 +101,7 @@
     <a href="{{ route('page-builder.submissions') }}" class="flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-[11px] font-bold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
         <i class="far fa-inbox text-[10px]"></i>مشاهده پیامهای فرمها
     </a>
-    <button type="button" wire:click="clearDraft" class="flex w-full items-center justify-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30">
+    <button type="button" wire:click="clearPage" class="flex w-full items-center justify-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30">
         <i class="far fa-trash-alt text-[10px]"></i>پاک کردن پیشنویس
     </button>
 </div>

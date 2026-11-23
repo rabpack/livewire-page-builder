@@ -2,9 +2,10 @@
 
 namespace Elearnac\PageBuilder\Livewire;
 
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -21,9 +22,9 @@ class Builder extends Component
     private const DEVICES = ['wide', 'desktop', 'tablet', 'mobile'];
 
     public ?int $pageId = null;
-    public string $title = '';
-    public string $slug = '';
-    public bool $status = true;
+    public string $pageTitle = '';
+    public string $pageSlug = '';
+    public ?string $editUrl = null;
     public array $document = [];
     public array $pageSettings = [
         'font' => 'site',
@@ -49,37 +50,45 @@ class Builder extends Component
     public string $importText = '';
     public string $exportText = '';
 
-    public function mount($slug = null): void
+    public function mount(string $slug): void
     {
-        if ($slug) {
-            $modelClass = config('page-builder.model', BuilderPage::class);
-            $page = $modelClass::where('slug', $slug)->firstOrFail();
-            $this->pageId = $page->id;
-            $this->title = (string) $page->title;
-            $this->slug = (string) $page->slug;
-            $this->status = (bool) $page->status;
-            $documentColumn = config('page-builder.document_column', 'document');
-            $this->document = (array) ($page->{$documentColumn} ?? []);
-            $this->pageSettings = array_merge($this->pageSettings, (array) data_get($page, 'settings', []));
-        }
+        $modelClass = config('page-builder.model', BuilderPage::class);
+        $page = $modelClass::where('slug', $slug)->firstOrFail();
 
-        if (! $slug && ($draft = session('page-builder.draft'))) {
-            $this->title = data_get($draft, 'title', '');
-            $this->slug = data_get($draft, 'slug', '');
-            $this->document = (array) data_get($draft, 'document', []);
-            $this->pageSettings = array_merge($this->pageSettings, (array) data_get($draft, 'settings', []));
-        }
+        $this->pageId = $page->id;
+        $this->pageTitle = (string) $page->title;
+        $this->pageSlug = (string) $page->slug;
+        $documentColumn = config('page-builder.document_column', 'document');
+        $this->document = $this->tree()->prune((array) ($page->{$documentColumn} ?? []));
+        $this->pageSettings = array_merge($this->pageSettings, (array) data_get($page, 'settings', []));
 
-        $this->document = $this->tree()->prune($this->document);
+        $editRoute = (string) config('page-builder.edit_route', 'panel.page.edit');
+        $this->editUrl = Route::has($editRoute) ? route($editRoute, $this->pageSlug) : null;
+
         $this->selected = count($this->document) ? '0' : null;
         $this->activeParent = '';
-        $this->persistDraft();
     }
 
-    public function updated(): void
+    public function updated(string $name): void
     {
         $this->savedAt = null;
-        $this->persistDraft();
+
+        if (str_starts_with($name, 'pageSettings.')) {
+            $rules = $this->pageSettingRules();
+            $rule = $rules[$name] ?? null;
+
+            if (! $rule) {
+                return;
+            }
+
+            try {
+                $this->validateOnly($name, [$name => $rule]);
+            } catch (ValidationException) {
+                return;
+            }
+        }
+
+        $this->persistPage();
     }
 
     private function pushHistory(): void
@@ -101,7 +110,7 @@ class Builder extends Component
         $this->document = $this->history[$this->historyIndex];
         $this->selected = count($this->document) ? '0' : null;
         $this->activeParent = '';
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function redo(): void
@@ -113,17 +122,26 @@ class Builder extends Component
         $this->document = $this->history[$this->historyIndex];
         $this->selected = count($this->document) ? '0' : null;
         $this->activeParent = '';
-        $this->persistDraft();
+        $this->persistPage();
     }
 
-    private function persistDraft(): void
+    private function persistPage(): void
     {
-        session()->put('page-builder.draft', [
-            'title' => $this->title,
-            'slug' => $this->slug,
-            'document' => $this->document,
-            'settings' => $this->pageSettings,
-        ]);
+        if (! $this->pageId) {
+            return;
+        }
+
+        $modelClass = config('page-builder.model', BuilderPage::class);
+        $page = $modelClass::findOrFail($this->pageId);
+        $attributes = [config('page-builder.document_column', 'document') => $this->document];
+        $settingsColumn = config('page-builder.settings_column', 'settings');
+
+        if (Schema::hasColumn($page->getTable(), $settingsColumn)) {
+            $attributes[$settingsColumn] = $this->pageSettings;
+        }
+
+        $page->fill($attributes)->save();
+        $this->savedAt = now()->format('H:i');
         $this->previewVersion++;
     }
 
@@ -164,7 +182,7 @@ class Builder extends Component
         $this->selected = $this->tree()->insert($this->document, $parent, $index, $block);
         $this->activeParent = $this->canHaveChildren($type) ? $this->selected : $parent;
         $this->syncSelection();
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function setFileKey(string $key): void
@@ -213,7 +231,7 @@ class Builder extends Component
             $images[] = $id;
         }
         $this->tree()->setValue($this->document, $path, array_values($images));
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function removeImage(int $index, ?string $key = null): void
@@ -228,7 +246,7 @@ class Builder extends Component
         $images = (array) $this->tree()->value($this->document, $path, []);
         unset($images[$index]);
         $this->tree()->setValue($this->document, $path, array_values($images));
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function addRepeaterItem(string $key): void
@@ -246,7 +264,7 @@ class Builder extends Component
         $items = (array) $this->tree()->value($this->document, $path, []);
         $items[] = $item;
         $this->tree()->setValue($this->document, $path, $items);
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function removeRepeaterItem(string $key, int $index): void
@@ -258,7 +276,7 @@ class Builder extends Component
         $items = (array) $this->tree()->value($this->document, $path, []);
         unset($items[$index]);
         $this->tree()->setValue($this->document, $path, array_values($items));
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function addFormField(): void
@@ -276,14 +294,6 @@ class Builder extends Component
         return app(ComponentRegistry::class);
     }
 
-    public function changeTitle(string $value): void
-    {
-        $this->title = $value;
-        if (! $this->slug || $this->pageId === null) {
-            $this->slug = Str::slug($value, '-');
-        }
-    }
-
     public function addBlock(string $type, ?string $parent = null): void
     {
         $this->pushHistory();
@@ -296,7 +306,7 @@ class Builder extends Component
         $this->selected = $this->tree()->insert($this->document, $parent, PHP_INT_MAX, $block);
         $this->activeParent = $this->canHaveChildren($type) ? $this->selected : $parent;
         $this->syncSelection();
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function selectBlock(string $path): void
@@ -344,7 +354,7 @@ class Builder extends Component
         );
         $this->activeParent = $parent;
         $this->syncSelection();
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function moveBlock(string $path, int $direction): void
@@ -355,7 +365,7 @@ class Builder extends Component
             return;
         }
         $this->selected = $moved;
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function duplicateBlock(string $path): void
@@ -367,7 +377,7 @@ class Builder extends Component
         }
         $this->selected = $copy;
         $this->syncSelection();
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function moveBlockTo(string $from, string $parent, int $index): void
@@ -379,7 +389,7 @@ class Builder extends Component
         $this->selected = $moved;
         $this->activeParent = $parent;
         $this->syncSelection();
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function applyTemplate(string $key): void
@@ -404,7 +414,7 @@ class Builder extends Component
         $this->selected = count($this->document) ? '0' : null;
         $this->activeParent = '';
         $this->resetErrorBag();
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function copyBlock(): void
@@ -431,7 +441,7 @@ class Builder extends Component
         $index = $this->selected === null ? PHP_INT_MAX : $this->tree()->index($this->selected) + 1;
         $this->selected = $this->tree()->insert($this->document, $parent, $index, $copy);
         $this->resetErrorBag();
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function prepareExport(): void
@@ -470,32 +480,23 @@ class Builder extends Component
         $this->activeParent = '';
         $this->importText = '';
         $this->resetErrorBag();
-        $this->persistDraft();
+        $this->persistPage();
     }
 
-    public function setPageSetting(string $key, mixed $value): void
+    public function clearPage(): void
     {
-        $this->pageSettings[$key] = $value;
-        $this->persistDraft();
-    }
-
-    public function clearDraft(): void
-    {
-        session()->forget('page-builder.draft');
-        $this->title = '';
-        $this->slug = '';
+        $this->pushHistory();
         $this->document = [];
         $this->selected = null;
         $this->activeParent = '';
-        $this->pageId = null;
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function toggleDevice(string $path, string $device): void
     {
         $current = (bool) $this->tree()->value($this->document, $path.'.devices.'.$device, true);
         $this->tree()->setValue($this->document, $path.'.devices.'.$device, ! $current);
-        $this->persistDraft();
+        $this->persistPage();
     }
 
     public function selectedTrail(): array
@@ -545,74 +546,11 @@ class Builder extends Component
         ];
     }
 
-    private function ensureUniqueSlug(string $modelClass): void
-    {
-        $this->slug = trim($this->slug);
-
-        if ($this->slug !== '') {
-            return;
-        }
-
-        $base = Str::slug($this->title, '-');
-        if ($base === '') {
-            $base = 'page-'.now()->format('His');
-        }
-
-        $slug = $base;
-        $suffix = 2;
-        while ($modelClass::where('slug', $slug)->when($this->pageId, fn ($query) => $query->whereKeyNot($this->pageId))->exists()) {
-            $slug = $base.'-'.$suffix++;
-        }
-
-        $this->slug = $slug;
-    }
-
     public function save(): void
     {
-        $modelClass = config('page-builder.model', BuilderPage::class);
-        $this->ensureUniqueSlug($modelClass);
-
-        $this->validate(array_merge([
-            'title' => 'required|string|max:255',
-            'slug' => [
-                'required', 'string', 'max:255',
-                Rule::unique((new $modelClass())->getTable(), 'slug')->ignore($this->pageId),
-            ],
-            'document' => 'array',
-        ], $this->pageSettingRules()));
-
-        $documentColumn = config('page-builder.document_column', 'document');
-        $settingsColumn = config('page-builder.settings_column', 'settings');
-        $page = $this->pageId
-            ? $modelClass::findOrFail($this->pageId)
-            : new $modelClass();
-
-        $attributes = [
-            'title' => $this->title,
-            'slug' => $this->slug,
-            'status' => $this->status,
-            $documentColumn => $this->document,
-        ];
-
-        if (Schema::hasColumn($page->getTable(), $settingsColumn)) {
-            $attributes[$settingsColumn] = $this->pageSettings;
-        }
-
-        foreach (config('page-builder.model_defaults', []) as $key => $value) {
-            if (! $page->exists || ! $page->{$key}) {
-                $attributes[$key] = match ($value) {
-                    '{auth_id}' => auth()->id(),
-                    '{now}' => now(),
-                    default => $value,
-                };
-            }
-        }
-
-        $page->fill($attributes)->save();
-        $this->pageId = $page->id;
-        $this->savedAt = now()->format('H:i');
-
-        Toaster::success('صفحه با موفقیت ذخیره شد.');
+        $this->validate($this->pageSettingRules());
+        $this->persistPage();
+        Toaster::success('تغییرات صفحه با موفقیت ذخیره شد.');
     }
 
     public function back(): \Illuminate\Http\RedirectResponse
