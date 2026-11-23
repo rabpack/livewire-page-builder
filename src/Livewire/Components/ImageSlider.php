@@ -8,9 +8,16 @@ class ImageSlider extends BlockComponent
 {
     public string $uid = '';
 
-    public function mount(array $settings = [], array $children = [], bool $editable = false, string $path = ''): void
-    {
-        parent::mount($settings, $children, $editable, $path);
+    public function mount(
+        array $settings = [],
+        array $children = [],
+        bool $editable = false,
+        string $path = '',
+        ?string $selectedPath = null,
+        string $device = 'desktop',
+        int $previewVersion = 0
+    ): void {
+        parent::mount($settings, $children, $editable, $path, $selectedPath, $device, $previewVersion);
         $this->uid = 'pb-slider-'.uniqid();
     }
 

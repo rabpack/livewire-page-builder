@@ -1,22 +1,50 @@
-@foreach ($children as $index => $child)
-    @if ($editable)
-        <div class="my-1 h-2 rounded border border-dashed border-brand-300 bg-brand-50/40"
-             data-dropzone data-path="{{ $path }}.children"
-             ondragover="event.preventDefault()"
-             ondrop="event.preventDefault(); window.dispatchEvent(new CustomEvent('pb-drop',{detail:{type:event.dataTransfer.getData('text/plain'),index:{{ $index }},parent:'{{ $path }}.children'}}))"></div>
-    @endif
-    <div class="{{ $editable ? 'rounded-lg border border-transparent p-1 hover:border-brand-200' : '' }}">
-        @livewire('page-builder.component.'.$child['type'], app(\Elearnac\PageBuilder\ComponentRegistry::class)->mountProps($child['type'], [
-            'settings' => $child['settings'],
-            'children' => $child['children'] ?? [],
-            'editable' => $editable,
-            'path' => $path.'.children.'.$index,
-        ]), key($path.'-child-'.$index.'-'.$child['type']))
-    </div>
-@endforeach
+@php
+    $childrenPath = $path === '' ? '' : $path.'.children';
+    $gridZone = $gridZone ?? false;
+@endphp
 @if ($editable)
-    <div class="my-1 h-2 rounded border border-dashed border-brand-300 bg-brand-50/40"
-         data-dropzone data-path="{{ $path }}.children"
-         ondragover="event.preventDefault()"
-         ondrop="event.preventDefault(); window.dispatchEvent(new CustomEvent('pb-drop',{detail:{type:event.dataTransfer.getData('text/plain'),index:{{ count($children) }},parent:'{{ $path }}.children'}}))"></div>
+    @if (count($children) === 0)
+        @include('page-builder::builder.partials.drop-zone', [
+            'parent' => $path,
+            'index' => 0,
+            'compact' => false,
+            'gridZone' => $gridZone,
+            'hint' => 'المان را داخل این المان بکشید',
+        ])
+    @else
+        @include('page-builder::builder.partials.drop-zone', [
+            'parent' => $path,
+            'index' => 0,
+            'compact' => true,
+            'gridZone' => $gridZone,
+        ])
+    @endif
 @endif
+
+@foreach ($children as $index => $child)
+    @if (is_array($child) && isset($child['type']))
+        @if ($editable)
+            @include('page-builder::builder.partials.block-frame', [
+                'block' => $child,
+                'path' => $childrenPath.'.'.$index,
+                'parent' => $path,
+                'index' => $index,
+            ])
+        @else
+            @livewire('page-builder.component.'.$child['type'], app(\Elearnac\PageBuilder\ComponentRegistry::class)->mountProps($child['type'], [
+                'settings' => $child['settings'],
+                'children' => $child['children'] ?? [],
+                'editable' => false,
+                'path' => $childrenPath.'.'.$index,
+            ]), key($childrenPath.'-'.$index.'-'.$child['type']))
+        @endif
+    @endif
+    @if ($editable)
+        @include('page-builder::builder.partials.drop-zone', [
+            'parent' => $path,
+            'index' => $index + 1,
+            'compact' => true,
+            'gridZone' => $gridZone,
+        ])
+    @endif
+@endforeach

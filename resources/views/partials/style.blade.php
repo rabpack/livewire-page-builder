@@ -16,6 +16,8 @@ html.dark .pb-muted{color:#94a3b8}
 html.dark .pb-button{background:var(--pb-accent-dark);color:#04121c}
 .pb-chip{display:inline-flex;align-items:center;gap:.25rem;border-radius:999px;background:rgba(24,183,165,.12);color:#0f766e;font-size:.7rem;font-weight:700;padding:.2rem .55rem}
 html.dark .pb-chip{background:rgba(34,211,238,.14);color:#67e8f9}
+.pb-layout{display:flex;flex-direction:column;min-height:var(--pb-min-height,0);justify-content:var(--pb-justify,flex-start);align-items:var(--pb-items,stretch);gap:var(--pb-gap,16px)}
+.pb-layout > .pb-grid{flex:1}
 .pb-grid{display:grid;grid-template-columns:repeat(var(--pb-columns,3),minmax(0,1fr));gap:var(--pb-gap)}
 @media(max-width:640px){.pb-grid{grid-template-columns:repeat(var(--pb-columns-mobile,1),minmax(0,1fr))}}
 .pb-input{width:100%;border:1px solid var(--pb-border);border-radius:calc(var(--pb-radius) / 2);padding:.55rem .7rem;background:#fff;color:#0f172a;font-family:var(--pb-font);font-size:.8rem}

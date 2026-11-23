@@ -1,6 +1,7 @@
 @include('page-builder::partials.fonts')
 @include('page-builder::partials.style')
 <div class="pb-page min-h-screen" style="{{ app(\Elearnac\PageBuilder\Services\StyleCompiler::class)->pageVariables($settings) }}">
+    <h1 class="sr-only">{{ $page->title }}</h1>
     @if ($settings['header'] ?? true)
         <header class="border-b border-slate-200 bg-white/80 px-6 py-4 dark:border-slate-800 dark:bg-slate-900/80">
             <div class="{{ app(\Elearnac\PageBuilder\ComponentRegistry::class)->classes('container') }} font-extrabold">{{ $page->title }}</div>

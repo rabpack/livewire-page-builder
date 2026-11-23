@@ -8,11 +8,18 @@ $layoutFields = Fields::merge(
     Fields::border(12),
     Fields::spacing(18, 16),
     [
+        'min_height' => Fields::number('حداقل ارتفاع (پیکسل)', 0, 'style', 0, 1200),
+        'gap' => Fields::number('فاصله بین المانهای داخلی (پیکسل)', 12, 'style', 0, 96),
+        'justify' => Fields::select('همترازی افقی', ['start' => 'ابتدا', 'center' => 'وسط', 'end' => 'انتها', 'between' => 'پراکنده'], 'start', 'style'),
         'container_width' => Fields::number('حداکثر عرض (پیکسل)', 1200, 'style', 320, 2200),
         'full_width' => Fields::switch('تمام عرض', false, 'style'),
         'classes' => Fields::text('کلاسهای اضافی', '', 'advanced'),
     ]
 );
+
+$columnFields = Fields::merge($layoutFields, [
+    'column_width' => Fields::number('عرض ستون (درصد)', 100, 'style', 10, 100),
+]);
 
 $gridFields = Fields::merge(
     $layoutFields,
@@ -28,7 +35,7 @@ return [
     'container' => ComponentBlueprint::make('کانتینر', 'ساختار', 'far fa-square', 'layout', $layoutFields, ['variant' => 'container']),
     'section' => ComponentBlueprint::make('بخش', 'ساختار', 'far fa-object-group', 'layout', $layoutFields, ['variant' => 'section']),
     'inner-section' => ComponentBlueprint::make('بخش داخلی', 'ساختار', 'far fa-object-ungroup', 'layout', $layoutFields, ['variant' => 'inner-section']),
-    'column' => ComponentBlueprint::make('ستون', 'ساختار', 'far fa-columns', 'layout', $layoutFields, ['variant' => 'column']),
+    'column' => ComponentBlueprint::make('ستون', 'ساختار', 'far fa-columns', 'layout', $columnFields, ['variant' => 'column']),
     'row' => ComponentBlueprint::make('ردیف', 'ساختار', 'far fa-grip-horizontal', 'layout', $gridFields, ['variant' => 'row']),
     'grid' => ComponentBlueprint::make('شبکه', 'ساختار', 'far fa-th', 'layout', $gridFields, ['variant' => 'grid']),
     'canvas' => ComponentBlueprint::make('بوم آزاد', 'ساختار', 'far fa-window-maximize', 'layout', $layoutFields, ['variant' => 'canvas']),

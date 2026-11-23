@@ -13,9 +13,18 @@ class UniversalBlock extends BlockComponent
     public string $type = '';
     public string $view = '';
 
-    public function mount(array $settings = [], array $children = [], bool $editable = false, string $path = '', string $type = '', string $view = ''): void
-    {
-        parent::mount($settings, $children, $editable, $path);
+    public function mount(
+        array $settings = [],
+        array $children = [],
+        bool $editable = false,
+        string $path = '',
+        ?string $selectedPath = null,
+        string $device = 'desktop',
+        int $previewVersion = 0,
+        string $type = '',
+        string $view = ''
+    ): void {
+        parent::mount($settings, $children, $editable, $path, $selectedPath, $device, $previewVersion);
         $this->type = $type;
         $this->view = $view;
     }
@@ -52,6 +61,10 @@ class UniversalBlock extends BlockComponent
                 'children' => $this->children,
                 'editable' => $this->editable,
                 'path' => $this->path,
+                'selected' => $this->selectedPath,
+                'device' => $this->device,
+                'previewVersion' => $this->previewVersion,
+                'components' => app(ComponentRegistry::class)->all(),
                 'setting' => fn (string $key, mixed $default = null) => $this->setting($key, $default),
                 'items' => $items instanceof Collection ? $items : collect($items),
             ]);

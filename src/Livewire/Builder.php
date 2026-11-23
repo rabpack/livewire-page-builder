@@ -11,6 +11,7 @@ use Livewire\Component;
 use Masmerise\Toaster\Toaster;
 use Elearnac\PageBuilder\ComponentRegistry;
 use Elearnac\PageBuilder\Models\BuilderPage;
+use Elearnac\PageBuilder\Services\DocumentTree;
 use Elearnac\PageBuilder\Services\FieldPresentation;
 use Elearnac\PageBuilder\Services\FontRegistry;
 
@@ -33,12 +34,14 @@ class Builder extends Component
         'accent' => '#18b7a5',
         'radius' => 12,
         'container_width' => 1200,
-        'header' => true,
-        'footer' => true,
+        'header' => false,
+        'footer' => false,
     ];
-    public ?int $selected = null;
+    public ?string $selected = null;
+    public string $activeParent = '';
     public string $fileKey = 'images';
     public string $device = 'desktop';
+    public ?string $savedAt = null;
     public int $previewVersion = 0;
     public array $history = [];
     public int $historyIndex = -1;
@@ -67,12 +70,15 @@ class Builder extends Component
             $this->pageSettings = array_merge($this->pageSettings, (array) data_get($draft, 'settings', []));
         }
 
-        $this->selected = count($this->document) ? 0 : null;
+        $this->document = $this->tree()->prune($this->document);
+        $this->selected = count($this->document) ? '0' : null;
+        $this->activeParent = '';
         $this->persistDraft();
     }
 
     public function updated(): void
     {
+        $this->savedAt = null;
         $this->persistDraft();
     }
 
@@ -93,7 +99,8 @@ class Builder extends Component
         }
         $this->historyIndex--;
         $this->document = $this->history[$this->historyIndex];
-        $this->selected = count($this->document) ? 0 : null;
+        $this->selected = count($this->document) ? '0' : null;
+        $this->activeParent = '';
         $this->persistDraft();
     }
 
@@ -104,7 +111,8 @@ class Builder extends Component
         }
         $this->historyIndex++;
         $this->document = $this->history[$this->historyIndex];
-        $this->selected = count($this->document) ? 0 : null;
+        $this->selected = count($this->document) ? '0' : null;
+        $this->activeParent = '';
         $this->persistDraft();
     }
 
@@ -135,11 +143,16 @@ class Builder extends Component
         ];
     }
 
+    public function tree(): DocumentTree
+    {
+        return app(DocumentTree::class);
+    }
+
     public function dropBlock(string $type, int $index, string $parent = ''): void
     {
         $this->pushHistory();
         if (str_starts_with($type, 'move:')) {
-            $this->moveBlockTo((int) substr($type, 5), $index, $parent);
+            $this->moveBlockTo(substr($type, 5), $parent, $index);
             return;
         }
 
@@ -148,17 +161,9 @@ class Builder extends Component
             return;
         }
 
-        $targetPath = $parent !== '' ? $parent : null;
-        $children = $targetPath ? (array) data_get($this->document, $targetPath, []) : $this->document;
-        array_splice($children, max(0, min($index, count($children))), 0, [$block]);
-
-        if ($targetPath) {
-            data_set($this->document, $targetPath, $children);
-        } else {
-            $this->document = $children;
-        }
-
-        $this->selected = $parent !== '' ? count($this->document) - 1 : max(0, min($index, count($this->document) - 1));
+        $this->selected = $this->tree()->insert($this->document, $parent, $index, $block);
+        $this->activeParent = $this->canHaveChildren($type) ? $this->selected : $parent;
+        $this->syncSelection();
         $this->persistDraft();
     }
 
@@ -176,22 +181,38 @@ class Builder extends Component
         $this->device = $device;
     }
 
+    public function setAddTarget(string $path): void
+    {
+        $this->activeParent = $this->tree()->get($this->document, $path) && $this->canHaveChildren((string) data_get($this->document, $path.'.type')) ? $path : '';
+    }
+
+    public function clearAddTarget(): void
+    {
+        $this->activeParent = '';
+    }
+
+    public function canHaveChildren(string $type): bool
+    {
+        return (string) data_get($this->registry()->get($type), 'view') === 'layout';
+    }
+
     #[On('pb-file')]
     public function addFile(array $data): void
     {
         $payload = $data['payload'] ?? $data;
         $id = $payload['id'] ?? null;
 
-        if (! is_numeric($id) || $this->selected === null || ! isset($this->document[$this->selected])) {
+        if (! is_numeric($id) || $this->selected === null || ! $this->tree()->get($this->document, $this->selected)) {
             return;
         }
 
         $id = (int) $id;
-        $images = (array) data_get($this->document, "{$this->selected}.settings.{$this->fileKey}", []);
+        $path = $this->selected.'.settings.'.$this->fileKey;
+        $images = (array) $this->tree()->value($this->document, $path, []);
         if (! in_array($id, $images, true)) {
             $images[] = $id;
         }
-        data_set($this->document, "{$this->selected}.settings.{$this->fileKey}", array_values($images));
+        $this->tree()->setValue($this->document, $path, array_values($images));
         $this->persistDraft();
     }
 
@@ -203,9 +224,10 @@ class Builder extends Component
         if ($key !== null) {
             $this->setFileKey($key);
         }
-        $images = (array) data_get($this->document, "{$this->selected}.settings.{$this->fileKey}", []);
+        $path = $this->selected.'.settings.'.$this->fileKey;
+        $images = (array) $this->tree()->value($this->document, $path, []);
         unset($images[$index]);
-        data_set($this->document, "{$this->selected}.settings.{$this->fileKey}", array_values($images));
+        $this->tree()->setValue($this->document, $path, array_values($images));
         $this->persistDraft();
     }
 
@@ -214,14 +236,16 @@ class Builder extends Component
         if ($this->selected === null) {
             return;
         }
-        $field = data_get($this->registry()->all(), "{$this->document[$this->selected]['type']}.fields.{$key}", []);
+        $type = (string) $this->tree()->value($this->document, $this->selected.'.type');
+        $field = data_get($this->registry()->get($type), 'fields.'.$key, []);
         $item = [];
-        foreach ((array) data_get($field, 'subfields', []) as $subfield => $type) {
-            $item[$subfield] = $type === 'number' ? 0 : '';
+        foreach ((array) data_get($field, 'subfields', []) as $subfield => $fieldType) {
+            $item[$subfield] = $fieldType === 'number' ? 0 : '';
         }
-        $items = (array) data_get($this->document, "{$this->selected}.settings.{$key}", []);
+        $path = $this->selected.'.settings.'.$key;
+        $items = (array) $this->tree()->value($this->document, $path, []);
         $items[] = $item;
-        data_set($this->document, "{$this->selected}.settings.{$key}", $items);
+        $this->tree()->setValue($this->document, $path, $items);
         $this->persistDraft();
     }
 
@@ -230,9 +254,10 @@ class Builder extends Component
         if ($this->selected === null) {
             return;
         }
-        $items = (array) data_get($this->document, "{$this->selected}.settings.{$key}", []);
+        $path = $this->selected.'.settings.'.$key;
+        $items = (array) $this->tree()->value($this->document, $path, []);
         unset($items[$index]);
-        data_set($this->document, "{$this->selected}.settings.{$key}", array_values($items));
+        $this->tree()->setValue($this->document, $path, array_values($items));
         $this->persistDraft();
     }
 
@@ -259,7 +284,7 @@ class Builder extends Component
         }
     }
 
-    public function addBlock(string $type): void
+    public function addBlock(string $type, ?string $parent = null): void
     {
         $this->pushHistory();
         $block = $this->makeBlock($type);
@@ -267,21 +292,33 @@ class Builder extends Component
             return;
         }
 
-        $this->document[] = $block;
-        $this->selected = count($this->document) - 1;
-        $this->fileKey = $this->firstFileField($this->selected);
+        $parent ??= $this->activeParent;
+        $this->selected = $this->tree()->insert($this->document, $parent, PHP_INT_MAX, $block);
+        $this->activeParent = $this->canHaveChildren($type) ? $this->selected : $parent;
+        $this->syncSelection();
         $this->persistDraft();
     }
 
-    public function selectBlock(int $index): void
+    public function selectBlock(string $path): void
     {
-        $this->selected = $index;
-        $this->fileKey = $this->firstFileField($index);
+        if (! $this->tree()->get($this->document, $path)) {
+            return;
+        }
+
+        $this->selected = $path;
+        $type = (string) $this->tree()->value($this->document, $path.'.type');
+        $this->activeParent = $this->canHaveChildren($type) ? $path : (string) ($this->tree()->parent($path) ?? '');
+        $this->syncSelection();
     }
 
-    private function firstFileField(int $index): string
+    private function syncSelection(): void
     {
-        $type = (string) data_get($this->document, "{$index}.type");
+        $type = $this->selected === null ? '' : (string) $this->tree()->value($this->document, $this->selected.'.type');
+        $this->fileKey = $this->firstFileField($type);
+    }
+
+    private function firstFileField(string $type): string
+    {
         foreach ((array) data_get($this->registry()->get($type), 'fields', []) as $key => $field) {
             if (($field['type'] ?? '') === 'files') {
                 return $key;
@@ -291,61 +328,57 @@ class Builder extends Component
         return 'images';
     }
 
-    public function removeBlock(int $index): void
+    public function removeBlock(string $path): void
     {
         $this->pushHistory();
-        unset($this->document[$index]);
-        $this->document = array_values($this->document);
-        $this->selected = count($this->document) ? max(0, $this->selected - 1) : null;
+        $removed = $this->tree()->remove($this->document, $path);
+        if (! $removed) {
+            return;
+        }
+
+        $parent = (string) $removed['parent'];
+        $this->selected = $this->tree()->siblingAfterRemoval(
+            $parent,
+            $removed['index'],
+            $this->tree()->countChildren($this->document, $parent)
+        );
+        $this->activeParent = $parent;
+        $this->syncSelection();
         $this->persistDraft();
     }
 
-    public function moveBlock(int $index, int $direction): void
+    public function moveBlock(string $path, int $direction): void
     {
         $this->pushHistory();
-        $swap = $index + $direction;
-        if (! isset($this->document[$index], $this->document[$swap])) {
+        $moved = $this->tree()->swap($this->document, $path, $direction);
+        if ($moved === null) {
             return;
         }
-
-        [$this->document[$index], $this->document[$swap]] = [$this->document[$swap], $this->document[$index]];
-        $this->selected = $swap;
+        $this->selected = $moved;
         $this->persistDraft();
     }
 
-    public function duplicateBlock(int $index): void
+    public function duplicateBlock(string $path): void
     {
         $this->pushHistory();
-        if (! isset($this->document[$index])) {
+        $copy = $this->tree()->duplicate($this->document, $path);
+        if ($copy === null) {
             return;
         }
-        $copy = $this->document[$index];
-        array_splice($this->document, $index + 1, 0, [$copy]);
-        $this->selected = $index + 1;
+        $this->selected = $copy;
+        $this->syncSelection();
         $this->persistDraft();
     }
 
-    public function moveBlockTo(int $from, int $to, string $parent = ''): void
+    public function moveBlockTo(string $from, string $parent, int $index): void
     {
-        $this->pushHistory();
-        if ($from === $to) {
+        $moved = $this->tree()->move($this->document, $from, $parent, $index);
+        if ($moved === null) {
             return;
         }
-        $targetPath = $parent !== '' ? $parent : null;
-        $children = $targetPath ? (array) data_get($this->document, $targetPath, []) : $this->document;
-        if (! isset($children[$from])) {
-            return;
-        }
-        $block = $children[$from];
-        unset($children[$from]);
-        $children = array_values($children);
-        array_splice($children, max(0, min($to, count($children))), 0, [$block]);
-        if ($targetPath) {
-            data_set($this->document, $targetPath, $children);
-        } else {
-            $this->document = $children;
-        }
-        $this->selected = $to;
+        $this->selected = $moved;
+        $this->activeParent = $parent;
+        $this->syncSelection();
         $this->persistDraft();
     }
 
@@ -368,18 +401,18 @@ class Builder extends Component
             }
         }
 
-        $this->selected = count($this->document) ? 0 : null;
+        $this->selected = count($this->document) ? '0' : null;
+        $this->activeParent = '';
         $this->resetErrorBag();
         $this->persistDraft();
     }
 
     public function copyBlock(): void
     {
-        if ($this->selected === null || ! isset($this->document[$this->selected])) {
+        if ($this->selected === null) {
             return;
         }
-
-        $this->clipboard = $this->document[$this->selected];
+        $this->clipboard = $this->tree()->get($this->document, $this->selected) ?? [];
     }
 
     public function pasteBlock(): void
@@ -390,10 +423,13 @@ class Builder extends Component
         }
 
         $this->pushHistory();
+        $parent = $this->activeParent;
+        if ($this->selected !== null) {
+            $parent = (string) ($this->tree()->parent($this->selected) ?? '');
+        }
         $copy = json_decode(json_encode($this->clipboard), true);
-        $position = ($this->selected ?? -1) + 1;
-        array_splice($this->document, $position, 0, [$copy]);
-        $this->selected = $position;
+        $index = $this->selected === null ? PHP_INT_MAX : $this->tree()->index($this->selected) + 1;
+        $this->selected = $this->tree()->insert($this->document, $parent, $index, $copy);
         $this->resetErrorBag();
         $this->persistDraft();
     }
@@ -430,7 +466,8 @@ class Builder extends Component
         $this->pushHistory();
         $this->document = $blocks;
         $this->pageSettings = array_merge($this->pageSettings, (array) data_get($payload, 'settings', []));
-        $this->selected = count($blocks) ? 0 : null;
+        $this->selected = count($blocks) ? '0' : null;
+        $this->activeParent = '';
         $this->importText = '';
         $this->resetErrorBag();
         $this->persistDraft();
@@ -449,15 +486,45 @@ class Builder extends Component
         $this->slug = '';
         $this->document = [];
         $this->selected = null;
+        $this->activeParent = '';
         $this->pageId = null;
         $this->persistDraft();
     }
 
-    public function toggleDevice(int $index, string $device): void
+    public function toggleDevice(string $path, string $device): void
     {
-        $current = (bool) data_get($this->document, "{$index}.devices.{$device}", true);
-        $this->document[$index]['devices'][$device] = ! $current;
+        $current = (bool) $this->tree()->value($this->document, $path.'.devices.'.$device, true);
+        $this->tree()->setValue($this->document, $path.'.devices.'.$device, ! $current);
         $this->persistDraft();
+    }
+
+    public function selectedTrail(): array
+    {
+        $trail = [['path' => '', 'label' => 'صفحه']];
+        $segments = $this->selected === null ? [] : explode('.children.', $this->selected);
+        $path = '';
+
+        foreach ($segments as $segment) {
+            $path = $path === '' ? $segment : $path.'.children.'.$segment;
+            $type = (string) $this->tree()->value($this->document, $path.'.type');
+            $trail[] = [
+                'path' => $path,
+                'label' => (string) data_get($this->registry()->get($type), 'label', $type),
+            ];
+        }
+
+        return $trail;
+    }
+
+    public function activeParentLabel(): string
+    {
+        if ($this->activeParent === '') {
+            return 'صفحه';
+        }
+
+        $type = (string) $this->tree()->value($this->document, $this->activeParent.'.type');
+
+        return (string) data_get($this->registry()->get($type), 'label', $type);
     }
 
     private function pageSettingRules(): array
@@ -478,15 +545,42 @@ class Builder extends Component
         ];
     }
 
+    private function ensureUniqueSlug(string $modelClass): void
+    {
+        $this->slug = trim($this->slug);
+
+        if ($this->slug !== '') {
+            return;
+        }
+
+        $base = Str::slug($this->title, '-');
+        if ($base === '') {
+            $base = 'page-'.now()->format('His');
+        }
+
+        $slug = $base;
+        $suffix = 2;
+        while ($modelClass::where('slug', $slug)->when($this->pageId, fn ($query) => $query->whereKeyNot($this->pageId))->exists()) {
+            $slug = $base.'-'.$suffix++;
+        }
+
+        $this->slug = $slug;
+    }
+
     public function save(): void
     {
+        $modelClass = config('page-builder.model', BuilderPage::class);
+        $this->ensureUniqueSlug($modelClass);
+
         $this->validate(array_merge([
             'title' => 'required|string|max:255',
-            'slug' => 'required|string|max:255',
+            'slug' => [
+                'required', 'string', 'max:255',
+                Rule::unique((new $modelClass())->getTable(), 'slug')->ignore($this->pageId),
+            ],
             'document' => 'array',
         ], $this->pageSettingRules()));
 
-        $modelClass = config('page-builder.model', BuilderPage::class);
         $documentColumn = config('page-builder.document_column', 'document');
         $settingsColumn = config('page-builder.settings_column', 'settings');
         $page = $this->pageId
@@ -516,6 +610,7 @@ class Builder extends Component
 
         $page->fill($attributes)->save();
         $this->pageId = $page->id;
+        $this->savedAt = now()->format('H:i');
 
         Toaster::success('صفحه با موفقیت ذخیره شد.');
     }
@@ -533,6 +628,8 @@ class Builder extends Component
             'categories' => $this->registry()->categories(),
             'fonts' => app(FontRegistry::class)->options(),
             'fieldPresentation' => app(FieldPresentation::class),
+            'selectionTrail' => $this->selectedTrail(),
+            'activeParentLabel' => $this->activeParentLabel(),
         ]);
     }
 }

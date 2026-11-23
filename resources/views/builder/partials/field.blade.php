@@ -54,7 +54,7 @@
         @case('editor')
             @if (config('page-builder.editor.component'))
                 <x-dynamic-component :component="config('page-builder.editor.component')"
-                    id="pb-editor-{{ $selected }}-{{ $key }}"
+                    id="pb-editor-{{ str_replace('.', '-', (string) $selected) }}-{{ $key }}"
                     name="{{ $path }}"
                     :defaultValue="data_get($document, $path, '')"
                     :isFileUpload="false" :menuBar="false" :toolbar="config('page-builder.editor.toolbar')" />

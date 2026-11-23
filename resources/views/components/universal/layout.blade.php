@@ -4,11 +4,16 @@
     $columnsMobile = max(1, min(8, (int) $setting('columns_mobile', 1)));
     $width = (int) $setting('container_width', 1200);
     $isGrid = in_array($variant, ['grid', 'row'], true);
+    $justifyMap = ['start' => 'flex-start', 'center' => 'center', 'end' => 'flex-end', 'between' => 'space-between'];
+    $itemsMap = ['start' => 'flex-start', 'center' => 'center', 'end' => 'flex-end', 'stretch' => 'stretch'];
+    $justify = $justifyMap[(string) $setting('justify', 'start')] ?? 'flex-start';
+    $alignItems = $itemsMap[(string) $setting('align_items', 'stretch')] ?? 'stretch';
+    $columnWidth = (int) $setting('column_width', 100);
 @endphp
-<div class="{{ $classes }}" style="{{ $style }};--pb-columns:{{ $columns }};--pb-columns-mobile:{{ $columnsMobile }}">
+<div class="{{ $classes }} pb-layout" style="{{ $style }};--pb-columns:{{ $columns }};--pb-columns-mobile:{{ $columnsMobile }};--pb-min-height:{{ (int) $setting('min_height', 0) }}px;--pb-justify:{{ $justify }};--pb-items:{{ $alignItems }};{{ $variant === 'column' ? 'width:'.$columnWidth.'%;' : '' }}">
     @if ($isGrid)
         <div class="pb-grid" style="--pb-columns:{{ $columns }};--pb-columns-mobile:{{ $columnsMobile }};align-items:{{ $setting('align_items','stretch') }}">
-            @include('page-builder::components.partials.children', ['children' => $children, 'editable' => $editable, 'path' => $path])
+            @include('page-builder::components.partials.children', ['children' => $children, 'editable' => $editable, 'path' => $path, 'gridZone' => true])
         </div>
     @elseif ($variant === 'sidebar')
         <aside class="w-full lg:w-72">

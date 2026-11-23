@@ -5,6 +5,7 @@ namespace Elearnac\PageBuilder\Livewire;
 use Livewire\Component;
 use Elearnac\PageBuilder\ComponentRegistry;
 use Elearnac\PageBuilder\Models\BuilderPage;
+use Elearnac\PageBuilder\Services\DocumentTree;
 
 class Renderer extends Component
 {
@@ -28,7 +29,7 @@ class Renderer extends Component
         $page = $this->page();
         $settings = (array) data_get($page, 'settings', []);
         $column = config('page-builder.document_column', 'document');
-        $document = (array) ($page->{$column} ?? []);
+        $document = app(DocumentTree::class)->prune((array) ($page->{$column} ?? []));
 
         return view('page-builder::components.renderer', [
             'page' => $page,

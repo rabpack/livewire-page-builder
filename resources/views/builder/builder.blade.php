@@ -1,7 +1,12 @@
 <div class="flex h-screen w-full overflow-hidden bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-100"
      dir="rtl"
      x-data="{ panelTab: 'add', settingsTab: 'content', toolSearch: '' }"
-     @pb-drop.window="$wire.call('dropBlock', $event.detail.type, $event.detail.index, $event.detail.parent); panelTab='settings'">
+     @pb-drop.window="$wire.call('dropBlock', $event.detail.type, $event.detail.index, $event.detail.parent); panelTab='settings'"
+     @pb-select.window="$wire.call('selectBlock', $event.detail.path); panelTab='settings'; settingsTab='content'"
+     @pb-move.window="$wire.call('moveBlock', $event.detail.path, $event.detail.direction)"
+     @pb-duplicate.window="$wire.call('duplicateBlock', $event.detail.path)"
+     @pb-remove.window="$wire.call('removeBlock', $event.detail.path)"
+     @pb-open-add.window="panelTab='add'">
 
     {{-- Right sidebar --}}
     <aside class="flex h-full w-[336px] min-w-[336px] max-w-[336px] shrink-0 grow-0 flex-col border-e border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
@@ -30,7 +35,8 @@
         </div>
 
         <div class="min-h-0 flex-1 overflow-y-auto p-3" x-show="panelTab==='settings'">
-            @if ($selected !== null && isset($document[$selected]))
+            @php($selectedBlock = $selected !== null ? data_get($document, $selected) : null)
+            @if (is_array($selectedBlock))
                 @include('page-builder::builder.partials.element-settings')
             @else
                 <div class="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 p-8 text-center dark:border-slate-700">
@@ -49,13 +55,19 @@
     {{-- Preview --}}
     <div class="flex min-w-0 flex-1 flex-col">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
                 <button type="button" wire:click="back" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:border-brand-400 dark:border-slate-700 dark:text-slate-300">
                     <i class="far fa-arrow-right"></i> بازگشت
                 </button>
                 <input wire:model.live.debounce.300ms="title" wire:change="changeTitle($event.target.value)"
-                       class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                       class="w-44 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold dark:border-slate-700 dark:bg-slate-900 dark:text-white sm:w-56"
                        placeholder="عنوان صفحه">
+                <input wire:model.live.debounce.300ms="slug" dir="ltr"
+                       class="w-36 rounded-lg border border-slate-200 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-white sm:w-44"
+                       placeholder="page-slug" title="آدرس صفحه (برای نمونه: about-us)">
+                @if ($errors->has('title') || $errors->has('slug'))
+                    <span class="text-[11px] font-bold text-rose-600">{{ $errors->first('title') ?: $errors->first('slug') }}</span>
+                @endif
             </div>
 
             <div class="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-900">
@@ -71,11 +83,27 @@
             <div class="flex items-center gap-1">
                 <button type="button" wire:click="undo" class="grid size-9 place-items-center rounded-lg border border-slate-200 text-xs font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300" title="واگرد"><i class="far fa-undo"></i></button>
                 <button type="button" wire:click="redo" class="grid size-9 place-items-center rounded-lg border border-slate-200 text-xs font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300" title="بازگرد"><i class="far fa-redo"></i></button>
-                <button type="button" wire:click="save" class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-xs font-bold text-white hover:bg-brand-600">
-                    <i class="far fa-save"></i>ذخیره صفحه
+                @if ($savedAt)
+                    <span class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                        <i class="far fa-check-circle"></i>ذخیره شد — {{ $savedAt }}
+                    </span>
+                @endif
+                <button type="button" wire:click="save" wire:target="save" wire:loading.attr="disabled"
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-xs font-bold text-white hover:bg-brand-600 disabled:opacity-60">
+                    <span wire:loading.remove wire:target="save"><i class="far fa-save"></i>ذخیره صفحه</span>
+                    <span wire:loading wire:target="save"><i class="far fa-spinner fa-spin"></i>در حال ذخیره...</span>
                 </button>
             </div>
         </div>
+
+        @if ($errors->any())
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-rose-200 bg-rose-50 px-4 py-2 text-[11px] font-bold text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+                <i class="far fa-circle-exclamation"></i>
+                @foreach ($errors->all() as $error)
+                    <span>{{ $error }}</span>
+                @endforeach
+            </div>
+        @endif
 
         <div class="min-h-0 flex-1 overflow-y-auto p-4">
             @include('page-builder::builder.partials.preview')
