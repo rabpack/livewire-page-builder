@@ -29,14 +29,22 @@
                 'path' => $childrenPath.'.'.$index,
                 'parent' => $path,
                 'index' => $index,
+                'gridZone' => $gridZone,
             ])
         @else
-            @livewire('page-builder.component.'.$child['type'], app(\Elearnac\PageBuilder\ComponentRegistry::class)->mountProps($child['type'], [
-                'settings' => $child['settings'],
-                'children' => $child['children'] ?? [],
-                'editable' => false,
-                'path' => $childrenPath.'.'.$index,
-            ]), key($childrenPath.'-'.$index.'-'.$child['type']))
+            @php
+                $childPath = $childrenPath.'.'.$index;
+                $childGridStyle = $gridZone ? app(\Elearnac\PageBuilder\Services\ResponsiveSettings::class)->childVariables($child['settings']) : '';
+            @endphp
+            <div class="{{ $gridZone ? 'pb-grid-child' : '' }}" data-pb-path="{{ $childPath }}" style="{{ $childGridStyle }}">
+                @livewire('page-builder.component.'.$child['type'], app(\Elearnac\PageBuilder\ComponentRegistry::class)->mountProps($child['type'], [
+                    'settings' => $child['settings'],
+                    'children' => $child['children'] ?? [],
+                    'editable' => false,
+                    'path' => $childPath,
+                    'device' => $device ?? 'desktop',
+                ]), key($childPath.'-'.$child['type']))
+            </div>
         @endif
     @endif
     @if ($editable)

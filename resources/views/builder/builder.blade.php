@@ -1,4 +1,4 @@
-<div class="flex h-screen w-full overflow-hidden bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-100"
+<div class="flex h-screen w-full flex-col overflow-hidden bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-100 sm:flex-row"
      dir="rtl"
      x-data="{ panelTab: 'add', settingsTab: 'content', toolSearch: '' }"
      @pb-drop.window="$wire.call('dropBlock', $event.detail.type, $event.detail.index, $event.detail.parent); panelTab='settings'"
@@ -9,7 +9,7 @@
      @pb-open-add.window="panelTab='add'">
 
     {{-- Right sidebar --}}
-    <aside class="flex h-full w-[336px] min-w-[336px] max-w-[336px] shrink-0 grow-0 flex-col border-e border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
+    <aside class="flex h-[46vh] min-h-[280px] w-full max-w-full shrink-0 grow-0 flex-col border-b border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 sm:h-full sm:w-[336px] sm:min-w-[336px] sm:max-w-[336px] sm:border-e sm:border-b-0">
 
         <div class="flex items-center gap-1 border-b border-slate-200 p-2 dark:border-slate-800">
             <button type="button" @click="panelTab='add'" :class="panelTab==='add' ? 'bg-brand-500 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'"
@@ -57,15 +57,19 @@
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
             <div class="flex flex-wrap items-center gap-2">
                 <button type="button" wire:click="back" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:border-brand-400 dark:border-slate-700 dark:text-slate-300">
-                    <i class="far fa-arrow-right"></i> بازگشت
+                    <i class="far fa-arrow-right"></i><span class="hidden sm:inline">بازگشت</span>
                 </button>
                 <div class="flex min-w-0 flex-col leading-tight">
                     <span class="text-[10px] text-slate-400">صفحه</span>
                     <span class="max-w-[220px] truncate text-sm font-extrabold text-slate-700 dark:text-slate-100" title="{{ $pageTitle }}">{{ $pageTitle }}</span>
                 </div>
+                @include('page-builder::components.view-page-button', [
+                    'url' => $publicUrl,
+                    'slug' => $pageSlug,
+                ])
                 @if ($editUrl)
                     <a href="{{ $editUrl }}" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-500 hover:border-brand-400 dark:border-slate-700 dark:text-slate-300">
-                        <i class="far fa-edit"></i>عنوان و نامک
+                        <i class="far fa-edit"></i><span class="hidden sm:inline">عنوان و نامک</span>
                     </a>
                 @endif
             </div>
@@ -75,7 +79,7 @@
                     <button type="button" wire:click="setDevice('{{ $key }}')"
                             title="پیشنمایش {{ $deviceOption[0] }}"
                             class="flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-bold transition-colors {{ $device === $key ? 'bg-brand-500 text-white' : 'text-slate-500 hover:bg-white dark:hover:bg-slate-800' }}">
-                        <i class="{{ $deviceOption[1] }} text-[10px]"></i>{{ $deviceOption[0] }}
+                        <i class="{{ $deviceOption[1] }} text-[10px]"></i><span class="hidden lg:inline">{{ $deviceOption[0] }}</span>
                     </button>
                 @endforeach
             </div>
@@ -90,7 +94,7 @@
                 @endif
                 <button type="button" wire:click="save" wire:target="save" wire:loading.attr="disabled"
                         class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-xs font-bold text-white hover:bg-brand-600 disabled:opacity-60">
-                    <span wire:loading.remove wire:target="save"><i class="far fa-save"></i>ذخیره صفحه</span>
+                    <span wire:loading.remove wire:target="save"><i class="far fa-save"></i><span class="hidden sm:inline">ذخیره صفحه</span></span>
                     <span wire:loading wire:target="save"><i class="far fa-spinner fa-spin"></i>در حال ذخیره...</span>
                 </button>
             </div>
@@ -105,7 +109,7 @@
             </div>
         @endif
 
-        <div class="min-h-0 flex-1 overflow-y-auto p-4">
+        <div class="min-h-0 min-w-0 flex-1 overflow-y-auto p-2 sm:p-4">
             @include('page-builder::builder.partials.preview')
         </div>
     </div>

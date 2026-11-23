@@ -27,12 +27,13 @@ final class StyleCompiler
         'border_width' => '--pb-border-width',
     ];
 
-    public function __construct(private FontRegistry $fonts)
+    public function __construct(private FontRegistry $fonts, private ResponsiveSettings $responsive)
     {
     }
 
-    public function variables(array $settings): string
+    public function variables(array $settings, string $device = 'desktop'): string
     {
+        $settings = $this->responsive->resolve($settings, $device);
         $declarations = ['--pb-font:'.$this->quoteFont($this->fonts->stack($settings['font'] ?? null))];
 
         foreach (self::COLOR_PROPERTIES as $key => $variable) {
@@ -60,8 +61,9 @@ final class StyleCompiler
         return implode(';', $declarations);
     }
 
-    public function pageVariables(array $settings): string
+    public function pageVariables(array $settings, string $device = 'desktop'): string
     {
+        $settings = $this->responsive->resolve($settings, $device);
         $declarations = ['--pb-font:'.$this->quoteFont($this->fonts->stack($settings['font'] ?? null))];
 
         foreach ([
@@ -90,6 +92,22 @@ final class StyleCompiler
         return implode(';', $declarations);
     }
 
+    public function pageResponsiveCss(array $settings): string
+    {
+        $css = '.pb-page{'.$this->important($this->pageVariables($settings, 'desktop')).'}';
+        $queries = [
+            'wide' => '@media(min-width:1600px)',
+            'tablet' => '@media(max-width:1024px)',
+            'mobile' => '@media(max-width:640px)',
+        ];
+
+        foreach ($queries as $device => $query) {
+            $css .= $query.'{.pb-page{'.$this->important($this->pageVariables($settings, $device)).'}}';
+        }
+
+        return $css;
+    }
+
     public function classes(array $settings, string $base = ''): string
     {
         $classes = trim($base.' pb-block');
@@ -100,6 +118,15 @@ final class StyleCompiler
             $classes .= ' '.preg_replace('/[^a-zA-Z0-9_\-\s:\[\]\/]/', '', $settings['classes']);
         }
         return trim($classes);
+    }
+
+    private function important(string $declarations): string
+    {
+        if ($declarations === '') {
+            return '';
+        }
+
+        return implode('!important;', explode(';', $declarations)).'!important';
     }
 
     private function quoteFont(string $family): string

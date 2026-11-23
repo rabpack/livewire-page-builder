@@ -18,15 +18,15 @@ $layoutFields = Fields::merge(
 );
 
 $columnFields = Fields::merge($layoutFields, [
-    'column_width' => Fields::number('عرض ستون (درصد)', 100, 'style', 10, 100),
+    'column_span' => Fields::number('تعداد ستونها (از 12)', 6, 'style', 1, 12),
+    'column_offset' => Fields::number('شروع از ستون', 0, 'style', 0, 11),
+    'column_order' => Fields::number('ترتیب نمایش', 0, 'style', 0, 12),
 ]);
 
 $gridFields = Fields::merge(
     $layoutFields,
     [
-        'columns' => Fields::number('ستون دسکتاپ', 3, 'style', 1, 8),
-        'columns_tablet' => Fields::number('ستون تبلت', 2, 'style', 1, 8),
-        'columns_mobile' => Fields::number('ستون موبایل', 1, 'style', 1, 8),
+        'columns' => Fields::number('تعداد ستونها (از 12)', 12, 'style', 1, 12),
         'align_items' => Fields::select('همترازی عمودی', ['start' => 'بالا', 'center' => 'وسط', 'end' => 'پایین', 'stretch' => 'کشیده'], 'stretch', 'style'),
     ]
 );

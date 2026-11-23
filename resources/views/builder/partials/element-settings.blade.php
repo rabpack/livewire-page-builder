@@ -20,6 +20,8 @@
     <span class="font-bold text-brand-600 dark:text-brand-300">{{ end($selectionTrail)['label'] }}</span>
 </div>
 
+@include('page-builder::builder.partials.design-device')
+
 <div class="mb-3 flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 p-2 dark:border-brand-500/20 dark:bg-brand-500/10">
     <span class="grid size-7 place-items-center rounded-md bg-brand-500 text-white"><i class="{{ $definition['icon'] ?? 'far fa-cube' }} text-xs"></i></span>
     <div class="min-w-0 flex-1">

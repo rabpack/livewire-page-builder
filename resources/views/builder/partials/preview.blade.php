@@ -1,18 +1,19 @@
 @php
-    $deviceWidths = ['mobile' => '390px', 'tablet' => '768px', 'desktop' => '1180px'];
+    $deviceWidths = ['wide' => '100%', 'mobile' => '390px', 'tablet' => '768px', 'desktop' => '1180px'];
     $deviceWidth = $deviceWidths[$device] ?? 'none';
     $deviceLabel = ['wide' => 'عریض', 'desktop' => 'دسکتاپ', 'tablet' => 'تبلت', 'mobile' => 'موبایل'][$device] ?? 'دسکتاپ';
+    $resolvedPage = app(\Elearnac\PageBuilder\Services\ResponsiveSettings::class)->resolve($pageSettings, $device);
 @endphp
 <div class="pb-canvas mx-auto w-full" style="max-width: {{ $deviceWidth }};">
     <div class="mb-2 flex items-center justify-between px-1 text-[11px] text-slate-400">
         <span><i class="far fa-eye me-1"></i>پیشنمایش زنده — {{ $deviceLabel }}</span>
         <span>{{ count($document) }} المان در صفحه</span>
     </div>
-    <div class="pb-page overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800"
+    <div class="pb-page pb-device-{{ $device }} overflow-hidden rounded-lg border border-slate-200 shadow-sm dark:border-slate-800"
          data-page-builder-preview
-         style="{{ app(\Elearnac\PageBuilder\Services\StyleCompiler::class)->pageVariables($pageSettings) }};">
+         style="{{ app(\Elearnac\PageBuilder\Services\StyleCompiler::class)->pageVariables($pageSettings, $device) }};">
 
-        @if ($pageSettings['header'] ?? false)
+        @if ($resolvedPage['header'] ?? false)
             <div wire:ignore>
                 @include(config('page-builder.preview_partials.header', 'general::layouts.partials.header'))
             </div>
@@ -51,7 +52,7 @@
             @endif
         </div>
 
-        @if ($pageSettings['footer'] ?? false)
+        @if ($resolvedPage['footer'] ?? false)
             <div wire:ignore>
                 @include(config('page-builder.preview_partials.footer', 'general::layouts.partials.footer'))
             </div>

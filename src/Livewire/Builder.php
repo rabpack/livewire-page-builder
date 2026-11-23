@@ -2,6 +2,7 @@
 
 namespace Elearnac\PageBuilder\Livewire;
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
@@ -25,6 +26,7 @@ class Builder extends Component
     public string $pageTitle = '';
     public string $pageSlug = '';
     public ?string $editUrl = null;
+    public ?string $publicUrl = null;
     public array $document = [];
     public array $pageSettings = [
         'font' => 'site',
@@ -42,6 +44,7 @@ class Builder extends Component
     public string $activeParent = '';
     public string $fileKey = 'images';
     public string $device = 'desktop';
+    public string $designDevice = 'desktop';
     public ?string $savedAt = null;
     public int $previewVersion = 0;
     public array $history = [];
@@ -65,6 +68,9 @@ class Builder extends Component
         $editRoute = (string) config('page-builder.edit_route', 'panel.page.edit');
         $this->editUrl = Route::has($editRoute) ? route($editRoute, $this->pageSlug) : null;
 
+        $viewRoute = (string) config('page-builder.view_route', 'page.index');
+        $this->publicUrl = Route::has($viewRoute) ? route($viewRoute, $this->pageSlug) : null;
+
         $this->selected = count($this->document) ? '0' : null;
         $this->activeParent = '';
     }
@@ -75,7 +81,10 @@ class Builder extends Component
 
         if (str_starts_with($name, 'pageSettings.')) {
             $rules = $this->pageSettingRules();
-            $rule = $rules[$name] ?? null;
+            $settingKey = str_contains($name, '.responsive.')
+                ? substr($name, (int) strrpos($name, '.') + 1)
+                : substr($name, strlen('pageSettings.'));
+            $rule = $rules['pageSettings.'.$settingKey] ?? null;
 
             if (! $rule) {
                 return;
@@ -197,6 +206,43 @@ class Builder extends Component
         }
 
         $this->device = $device;
+        $this->setDesignDevice($device);
+    }
+
+    public function setDesignDevice(string $device): void
+    {
+        if (! in_array($device, self::DEVICES, true)) {
+            return;
+        }
+
+        $this->designDevice = $device;
+        if ($device === 'desktop') {
+            return;
+        }
+
+        if ($this->selected) {
+            $type = (string) data_get($this->document, $this->selected.'.type');
+            $fields = array_keys($this->registry()->get($type)['fields'] ?? []);
+            foreach ($fields as $key) {
+                $base = $this->selected.'.settings.'.$key;
+                $override = $this->selected.'.settings.responsive.'.$device.'.'.$key;
+                if (! Arr::has($this->document, $override)) {
+                    data_set($this->document, $override, data_get($this->document, $base));
+                }
+            }
+        }
+
+        foreach (array_keys($this->pageSettings) as $key) {
+            if ($key === 'responsive') {
+                continue;
+            }
+            $override = 'responsive.'.$device.'.'.$key;
+            if (! Arr::has($this->pageSettings, $override)) {
+                data_set($this->pageSettings, $override, $this->pageSettings[$key]);
+            }
+        }
+
+        $this->persistPage();
     }
 
     public function setAddTarget(string $path): void
@@ -574,6 +620,7 @@ class Builder extends Component
             'fieldPresentation' => app(FieldPresentation::class),
             'selectionTrail' => $this->selectedTrail(),
             'activeParentLabel' => $this->activeParentLabel(),
+            'designDevice' => $this->designDevice,
         ]);
     }
 }

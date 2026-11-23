@@ -1,4 +1,6 @@
 <div class="space-y-3">
+    @include('page-builder::builder.partials.design-device')
+    @php($pagePath = fn (string $key): string => ($designDevice ?? 'desktop') === 'desktop' ? 'pageSettings.'.$key : 'pageSettings.responsive.'.($designDevice ?? 'desktop').'.'.$key)
     <section class="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800/60">
         <h3 class="mb-2 flex items-center gap-1.5 text-xs font-extrabold text-slate-700 dark:text-slate-200">
             <i class="far fa-layout text-[10px] text-brand-500"></i>الگوهای آماده
@@ -50,7 +52,7 @@
         <div class="space-y-2.5">
             <div>
                 <label class="mb-1 flex items-center gap-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300"><i class="far fa-font text-[10px] text-brand-500"></i>فونت صفحه</label>
-                <select wire:model.live="pageSettings.font" class="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+                <select wire:model.live="{{ $pagePath('font') }}" class="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
                     @foreach ($fonts as $fontKey => $fontLabel)<option value="{{ $fontKey }}">{{ $fontLabel }}</option>@endforeach
                 </select>
                 <p class="mt-1 text-[10px] text-slate-400">فونت پیشفرض تمام المانهایی که فونت جداگانی ندارند.</p>
@@ -68,8 +70,8 @@
                         <i class="{{ $colorSetting[2] }} text-[10px] text-brand-500"></i>{{ $colorSetting[1] }}
                     </label>
                     <div class="flex items-center gap-2">
-                        <input type="color" wire:model.live="pageSettings.{{ $colorSetting[0] }}" class="size-9 cursor-pointer rounded-md border border-slate-200 bg-transparent p-0.5 dark:border-slate-700">
-                        <input type="text" dir="ltr" wire:model.live="pageSettings.{{ $colorSetting[0] }}" class="h-9 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+                        <input type="color" wire:model.live="{{ $pagePath($colorSetting[0]) }}" class="size-9 cursor-pointer rounded-md border border-slate-200 bg-transparent p-0.5 dark:border-slate-700">
+                        <input type="text" dir="ltr" wire:model.live="{{ $pagePath($colorSetting[0]) }}" class="h-9 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
                     </div>
                 </div>
             @endforeach
@@ -83,8 +85,8 @@
                         <i class="{{ $numberSetting[2] }} text-[10px] text-brand-500"></i>{{ $numberSetting[1] }}
                     </label>
                     <div class="flex items-center gap-2">
-                        <input type="range" min="{{ $numberSetting[3] }}" max="{{ $numberSetting[4] }}" wire:model.live="pageSettings.{{ $numberSetting[0] }}" class="h-1.5 flex-1 accent-brand-500">
-                        <input type="number" min="{{ $numberSetting[3] }}" max="{{ $numberSetting[4] }}" wire:model.live="pageSettings.{{ $numberSetting[0] }}" class="h-8 w-20 rounded-lg border border-slate-200 bg-slate-50 px-1.5 text-center text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+                        <input type="range" min="{{ $numberSetting[3] }}" max="{{ $numberSetting[4] }}" wire:model.live="{{ $pagePath($numberSetting[0]) }}" class="h-1.5 flex-1 accent-brand-500">
+                        <input type="number" min="{{ $numberSetting[3] }}" max="{{ $numberSetting[4] }}" wire:model.live="{{ $pagePath($numberSetting[0]) }}" class="h-8 w-20 rounded-lg border border-slate-200 bg-slate-50 px-1.5 text-center text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
                     </div>
                 </div>
             @endforeach
@@ -92,7 +94,7 @@
             @foreach (['header' => ['نمایش هدر سایت', 'far fa-window-maximize'], 'footer' => ['نمایش فوتر سایت', 'far fa-window-minimize']] as $key => $toggle)
                 <label class="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300">
                     <span class="flex items-center gap-1.5"><i class="{{ $toggle[1] }} text-[10px] text-brand-500"></i>{{ $toggle[0] }}</span>
-                    <input type="checkbox" class="size-4 accent-brand-500" wire:model.live="pageSettings.{{ $key }}">
+                    <input type="checkbox" class="size-4 accent-brand-500" wire:model.live="{{ $pagePath($key) }}">
                 </label>
             @endforeach
         </div>

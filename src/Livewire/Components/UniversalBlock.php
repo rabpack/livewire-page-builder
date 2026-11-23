@@ -5,6 +5,7 @@ namespace Elearnac\PageBuilder\Livewire\Components;
 use Elearnac\PageBuilder\ComponentRegistry;
 use Elearnac\PageBuilder\Services\DynamicData;
 use Elearnac\PageBuilder\Services\MediaResolver;
+use Elearnac\PageBuilder\Services\ResponsiveSettings;
 use Elearnac\PageBuilder\Services\StyleCompiler;
 use Illuminate\Support\Collection;
 
@@ -37,14 +38,16 @@ class UniversalBlock extends BlockComponent
             $view = 'page-builder::components.universal.text';
         }
 
-        $source = (string) ($this->settings['source'] ?? data_get($definition, 'source', 'static'));
-        $items = app(DynamicData::class)->items($source, $this->settings);
-        $images = app(MediaResolver::class)->urls($this->settings['images'] ?? []);
+        $responsive = app(ResponsiveSettings::class);
+        $settings = $responsive->resolve($this->settings, $this->device);
+        $source = (string) ($settings['source'] ?? data_get($definition, 'source', 'static'));
+        $items = app(DynamicData::class)->items($source, $settings);
+        $images = app(MediaResolver::class)->urls($settings['images'] ?? []);
         $rawImage = $this->setting('image');
         $image = is_array($rawImage) || is_bool($rawImage) ? null : app(MediaResolver::class)->url($rawImage);
-        $variant = (string) ($this->settings['variant'] ?? data_get($definition, 'variant', $this->type));
-        $style = app(StyleCompiler::class)->variables($this->settings);
-        $classes = app(StyleCompiler::class)->classes($this->settings);
+        $variant = (string) ($settings['variant'] ?? data_get($definition, 'variant', $this->type));
+        $style = app(StyleCompiler::class)->variables($this->settings, $this->device);
+        $classes = app(StyleCompiler::class)->classes($settings);
 
         return view($view, [
             'definition' => $definition,
@@ -57,7 +60,8 @@ class UniversalBlock extends BlockComponent
             'classes' => $classes,
         ])
             ->with([
-                'settings' => $this->settings,
+                'settings' => $settings,
+                'gridVariables' => $responsive->gridVariables($this->settings),
                 'children' => $this->children,
                 'editable' => $this->editable,
                 'path' => $this->path,
@@ -66,6 +70,7 @@ class UniversalBlock extends BlockComponent
                 'previewVersion' => $this->previewVersion,
                 'components' => app(ComponentRegistry::class)->all(),
                 'setting' => fn (string $key, mixed $default = null) => $this->setting($key, $default),
+                'responsiveValue' => fn (string $forDevice, string $key, mixed $default = null) => $responsive->value($this->settings, $key, $default, $forDevice),
                 'items' => $items instanceof Collection ? $items : collect($items),
             ]);
     }

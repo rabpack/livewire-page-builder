@@ -2,6 +2,7 @@
 
 namespace Elearnac\PageBuilder\Livewire\Components;
 
+use Elearnac\PageBuilder\Services\ResponsiveSettings;
 use Livewire\Component;
 
 abstract class BlockComponent extends Component
@@ -34,6 +35,16 @@ abstract class BlockComponent extends Component
 
     public function setting(string $key, mixed $default = null): mixed
     {
-        return $this->settings[$key] ?? $default;
+        return $this->responsive()->value($this->settings, $key, $default, $this->device);
+    }
+
+    public function responsiveValue(string $device, string $key, mixed $default = null): mixed
+    {
+        return $this->responsive()->value($this->settings, $key, $default, $device);
+    }
+
+    private function responsive(): ResponsiveSettings
+    {
+        return app(ResponsiveSettings::class);
     }
 }

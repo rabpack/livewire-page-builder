@@ -4,9 +4,12 @@
     $icon = $definition['icon'] ?? 'far fa-cube';
     $isSelected = $selected === $path;
     $visible = data_get($block, 'devices.'.$device, true);
+    $gridZone = $gridZone ?? false;
+    $gridStyle = $gridZone ? app(\Elearnac\PageBuilder\Services\ResponsiveSettings::class)->childVariables($block['settings']) : '';
 @endphp
-<div class="pb-block group {{ $isSelected ? 'pb-block-selected' : '' }} {{ $visible ? '' : 'pb-block-hidden' }}"
+<div class="pb-block group {{ $gridZone ? 'pb-grid-child' : '' }} {{ $isSelected ? 'pb-block-selected' : '' }} {{ $visible ? '' : 'pb-block-hidden' }}"
      data-pb-path="{{ $path }}"
+     style="{{ $gridStyle }}"
      draggable="true"
      ondragstart="event.stopPropagation();event.dataTransfer.setData('text/plain','move:{{ $path }}');event.dataTransfer.effectAllowed='move'"
      @click.stop="window.dispatchEvent(new CustomEvent('pb-select',{detail:{path:'{{ $path }}'}}))">

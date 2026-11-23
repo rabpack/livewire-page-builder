@@ -1,4 +1,7 @@
-@php($repeater = (array) data_get($document, $selected.'.settings.'.$key, []))
+@php
+    $settingsPath = $settingsPath ?? 'document.'.$selected.'.settings.'.$key;
+    $repeater = (array) data_get($document, $settingsPath, []);
+@endphp
 <div class="space-y-2">
     @forelse ($repeater as $fieldIndex => $formField)
         <div class="rounded-lg border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-800">
@@ -11,27 +14,27 @@
                 @if ($subfieldType === 'switch')
                     <label class="mb-1.5 flex items-center gap-2 text-[10px] text-slate-600 dark:text-slate-300">
                         <input type="checkbox" class="size-3.5 rounded border-slate-300 text-brand-500"
-                               wire:model.live="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.{{ $subfield }}">
+                               wire:model.live="{{ $settingsPath }}.{{ $fieldIndex }}.{{ $subfield }}">
                         {{ $subfield }}
                     </label>
                 @elseif ($subfieldType === 'select')
-                    <select wire:model.live="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.{{ $subfield }}"
+                    <select wire:model.live="{{ $settingsPath }}.{{ $fieldIndex }}.{{ $subfield }}"
                             class="mb-1.5 w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900">
                         @foreach (($subfield === 'type' ? ['text'=>'متن','email'=>'ایمیل','textarea'=>'پیام','number'=>'عدد','tel'=>'تلفن'] : []) as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
                     </select>
                 @elseif ($subfieldType === 'textarea')
-                    <textarea rows="2" wire:model.live.debounce.300ms="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.{{ $subfield }}"
+                    <textarea rows="2" wire:model.live.debounce.300ms="{{ $settingsPath }}.{{ $fieldIndex }}.{{ $subfield }}"
                               placeholder="{{ $subfield }}" class="mb-1.5 w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900"></textarea>
                 @elseif ($subfieldType === 'editor' && config('page-builder.editor.component'))
                     <x-dynamic-component :component="config('page-builder.editor.component')"
                         id="pb-editor-{{ $selected }}-{{ $key }}-{{ $fieldIndex }}-{{ $subfield }}"
-                        name="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.{{ $subfield }}"
-                        :defaultValue="data_get($document, $selected.'.settings.'.$key.'.'.$fieldIndex.'.'.$subfield, '')"
+                        name="{{ $settingsPath }}.{{ $fieldIndex }}.{{ $subfield }}"
+                        :defaultValue="data_get($document, $settingsPath.'.'.$fieldIndex.'.'.$subfield, '')"
                         :isFileUpload="false" :menuBar="false" :toolbar="config('page-builder.editor.toolbar')" />
                 @else
-                    <input type="text" wire:model.live.debounce.300ms="document.{{ $selected }}.settings.{{ $key }}.{{ $fieldIndex }}.{{ $subfield }}"
+                    <input type="text" wire:model.live.debounce.300ms="{{ $settingsPath }}.{{ $fieldIndex }}.{{ $subfield }}"
                            placeholder="{{ $subfield }}" class="mb-1.5 w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900">
                 @endif
             @endforeach

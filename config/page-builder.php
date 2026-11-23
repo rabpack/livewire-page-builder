@@ -29,6 +29,7 @@ return [
     'document_column' => 'document',
     'settings_column' => 'settings',
     'edit_route' => null,
+    'view_route' => null,
 
     'file_model' => \Modules\File\App\Models\File::class,
     'file_manager' => [
