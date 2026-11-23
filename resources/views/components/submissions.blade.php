@@ -2,7 +2,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
             <h1 class="text-xl font-extrabold text-slate-800 dark:text-white">پیامهای فرمها</h1>
-            <p class="mt-1 text-xs text-slate-500">پیامهای ارسالشده از فرمهای صفحهساز را بررسید و فیلتر کنید.</p>
+            <p class="mt-1 text-xs text-slate-500">پیامهای ارسالشده از فرمهای صفحه ساز را بررسید و فیلتر کنید.</p>
         </div>
         <select wire:model.live="formId" class="rounded-lg border border-slate-200 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900">
             <option value="">همه فرمها</option>

@@ -553,8 +553,14 @@ class Builder extends Component
         Toaster::success('تغییرات صفحه با موفقیت ذخیره شد.');
     }
 
-    public function back(): \Illuminate\Http\RedirectResponse
+    public function back()
     {
+        $editRoute = (string) config('page-builder.edit_route', 'panel.page.edit');
+
+        if ($this->pageId && Route::has($editRoute)) {
+            return redirect()->route($editRoute, $this->pageSlug);
+        }
+
         return redirect()->route(config('page-builder.back_route', 'panel.page.index'));
     }
 
